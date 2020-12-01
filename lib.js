@@ -1,6 +1,11 @@
 (() => {
 
-// TODO: undo / redo
+const MIN_SCALE = 2;
+const MAX_SCALE = 64;
+const PADDING = 120;
+const MAX_STATES = 64;
+
+// TODO: redo
 
 function makeLine(x0, y0, x1, y1) {
 
@@ -84,8 +89,24 @@ function makeCanvas(w, h) {
 
 }
 
+function deepCopy(input) {
+
+	if (typeof(input) !== "object" || input === null) {
+		return input;
+	}
+
+	const out = Array.isArray(input) ? [] : {};
+
+	for (const key in input) {
+		out[key] = deepCopy(input[key]);
+	}
+
+	return out;
+
+}
+
 const ed = {
-	scale: 20,
+	scale: 1,
 	width: 0,
 	height: 0,
 	frames: [],
@@ -109,17 +130,66 @@ function colorCSS(c) {
 	return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})`;
 }
 
-// TODO: a little wrong
 function scaleDown() {
-	ed.scale = Math.max(4, ed.scale - 1);
-	ed.offset[0] += ed.scale / 2;
-	ed.offset[1] += ed.scale / 2;
+	if (ed.scale <= MIN_SCALE) {
+		return;
+	}
+	ed.scale--;
+	ed.offset[0] += ed.width / 2;
+	ed.offset[1] += ed.height / 2;
 }
 
 function scaleUp() {
+	if (ed.scale >= MAX_SCALE) {
+		return;
+	}
 	ed.scale++;
-	ed.offset[0] -= ed.scale / 2;
-	ed.offset[1] -= ed.scale / 2;
+	ed.offset[0] -= ed.width / 2;
+	ed.offset[1] -= ed.height / 2;
+}
+
+function scaleFit() {
+	const cw = ed.canvasEl.width;
+	const ch = ed.canvasEl.height;
+	const sw = (cw - PADDING) / ed.width;
+	const sh = (ch - PADDING) / ed.height;
+	ed.scale = ~~Math.min(sw, sh);
+	ed.offset = [
+		(cw - ed.width * ed.scale) / 2,
+		(ch - ed.height * ed.scale) / 2,
+	];
+}
+
+function newFrame() {
+	ed.frames.push(makeCanvas(ed.width, ed.height));
+}
+
+function delFrame() {
+	if (ed.frames.length > 1) {
+		ed.frames.splice(ed.curFrame, 1);
+	}
+}
+
+function prevFrame() {
+	ed.curFrame = ed.curFrame == 0 ? ed.frames.length - 1 : ed.curFrame - 1;
+}
+
+function nextFrame() {
+	ed.curFrame = (ed.curFrame + 1) % ed.frames.length;
+}
+
+function pushState() {
+	if (ed.states.length >= MAX_STATES) {
+		return;
+	}
+	ed.states.push(deepCopy(ed.frames));
+}
+
+function popState() {
+	if (ed.states.length <= 0) {
+		return;
+	}
+	ed.frames = ed.states.pop();
 }
 
 function render() {
@@ -129,16 +199,17 @@ function render() {
 	const cw = ed.canvasEl.width;
 	const ch = ed.canvasEl.height;
 	const s = ed.scale;
+	const ox = ed.offset[0];
+	const oy = ed.offset[1];
 
 	ctx.lineWidth = 2;
 
+	// bg
 	ctx.clearRect(0, 0, cw, ch);
 	ctx.fillStyle = colorCSS([200, 200, 200, 255]);
 	ctx.fillRect(0, 0, cw, ch);
 
-	const ox = ed.offset[0];
-	const oy = ed.offset[1];
-
+	// canvas
 	ctx.fillStyle = colorCSS([255, 255, 255, 255]);
 	ctx.fillRect(ox, oy, canvas.width * s, canvas.height * s);
 
@@ -155,22 +226,25 @@ function render() {
 	ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 	ctx.strokeRect(ox, oy, canvas.width * s, canvas.height * s);
 
-	let x = 0;
+	// frame no.
+	{
 
-	for (let i = 0; i < ed.frames.length; i++) {
-		const w = i == ed.curFrame ? 32 : 24;
-		const h = i == ed.curFrame ? 24 : 16;
-		const c = i == ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
-		ctx.fillStyle = colorCSS(c);
-		ctx.fillRect(ox + x, oy, w, -h);
-		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-		ctx.strokeRect(ox + x, oy, w, -h);
-// 		ctx.font = "20px Courier";
-// 		ctx.fillStyle = colorCSS([0, 0, 0, 255]);
-// 		ctx.fillText(i, ox + 9 + x, oy - 5);
-		x += w;
+		let x = 0;
+
+		for (let i = 0; i < ed.frames.length; i++) {
+			const w = i == ed.curFrame ? 32 : 24;
+			const h = i == ed.curFrame ? 24 : 16;
+			const c = i == ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
+			ctx.fillStyle = colorCSS(c);
+			ctx.fillRect(ox + x, oy, w, -h);
+			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+			ctx.strokeRect(ox + x, oy, w, -h);
+			x += w;
+		}
+
 	}
 
+	// cursor
 	switch (ed.mode) {
 		case "pencil": {
 			const [x, y] = toPixelPos(ed.mousePos);
@@ -203,15 +277,7 @@ function start(conf) {
 	ed.height = conf.height;
 	ed.frames[0] = makeCanvas(ed.width, ed.height);
 
-	const cw = ed.canvasEl.width;
-	const ch = ed.canvasEl.height;
-	const ccw = ed.frames[ed.curFrame].width * ed.scale;
-	const cch = ed.frames[ed.curFrame].height * ed.scale;
-
-	ed.offset = [
-		(cw - ccw) / 2,
-		(ch - cch) / 2,
-	];
+	scaleFit();
 
 	ed.ctx.imageSmoothingEnabled = false;
 
@@ -234,6 +300,8 @@ function start(conf) {
 		ed.mouseDown = true;
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
+
+		pushState();
 
 		const [x, y] = toPixelPos(ed.mousePos);
 
@@ -300,26 +368,29 @@ function start(conf) {
 			case "e":
 				ed.mode = "erasor";
 				break;
-			case "-": {
+			case "-":
 				scaleDown();
 				break;
-			}
 			case "=":
 				scaleUp();
 				break;
+			case "0":
+				scaleFit();
+				break;
 			case "+":
-				ed.frames.push(makeCanvas(ed.width, ed.height));
+				newFrame();
 				break;
 			case "_":
-				if (ed.frames.length > 1) {
-					ed.frames.splice(ed.curFrame, 1);
-				}
+				delFrame();
 				break;
 			case "ArrowLeft":
-				ed.curFrame = Math.abs(ed.curFrame - 1) % ed.frames.length;
+				prevFrame();
 				break;
 			case "ArrowRight":
-				ed.curFrame = (ed.curFrame + 1) % ed.frames.length;
+				nextFrame();
+				break;
+			case "u":
+				popState();
 				break;
 		}
 	});

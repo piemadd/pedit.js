@@ -21,17 +21,19 @@ b: pencil
 e: erasor
 -: scale down
 =: scale up
-left: prev frame
-right: next frame
+0: scale fit
+<-: prev frame
+->: next frame
 +: new frame
-_: rm frame
+_: del frame
+u: undo
 	</pre>
 	<script src="../lib.js"></script>
 	<script>
 		pedit.start({
 			canvas: document.querySelector("#editor"),
-			width: 16,
-			height: 16,
+			width: 24,
+			height: 64,
 		});
 		</script>
 
