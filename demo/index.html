@@ -6,9 +6,6 @@
 	<title>demo</title>
 	<meta charset="utf-8">
 	<style>
-		* {
-			margin: 0;
-		}
 		canvas {
 			outline: solid 2px black;
 			display: block;
@@ -19,6 +16,16 @@
 <body>
 
 	<canvas id="editor" width=480 height=480></canvas>
+	<pre>
+b: pencil
+e: erasor
+-: scale down
+=: scale up
+left: prev frame
+right: next frame
++: new frame
+_: rm frame
+	</pre>
 	<script src="../lib.js"></script>
 	<script>
 		pedit.start({
