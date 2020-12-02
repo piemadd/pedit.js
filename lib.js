@@ -5,8 +5,6 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-// TODO: redo
-
 function makeLine(x0, y0, x1, y1) {
 
 	const arr = [];
@@ -81,12 +79,42 @@ function makeCanvas(w, h) {
 			this.pixels = Array(w * h * 4).fill(0);
 		},
 
+		_bucketRec(x, y, target, color) {
+
+			if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+				return;
+			}
+
+			if (!colorCmp(this.get(x, y), target)) {
+				return;
+			}
+
+			this.set(x, y, color);
+			this._bucketRec(x, y - 1, target, color);
+			this._bucketRec(x - 1, y, target, color);
+			this._bucketRec(x + 1, y, target, color);
+			this._bucketRec(x, y + 1, target, color);
+
+		},
+
+		bucket(x, y, color) {
+			const target = this.get(x, y);
+			if (colorCmp(target, color)) {
+				return;
+			}
+			this._bucketRec(x, y, target, color);
+		},
+
 		toImageData() {
 			return new ImageData(new Uint8ClampedArray(this.pixels), this.width, this.height);
 		},
 
 	};
 
+}
+
+function colorCmp(c1, c2) {
+	return c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2] && c1[3] == c2[3];
 }
 
 function deepCopy(input) {
@@ -116,11 +144,23 @@ const ed = {
 	mousePosPrev: [0, 0],
 	mode: "pencil",
 	color: [0, 0, 0, 255],
+	colors: [
+		[0, 0, 0, 255],
+		[255, 255, 255, 255],
+		[255, 0, 0, 255],
+		[0, 255, 0, 255],
+		[0, 0, 255, 255],
+		[255, 255, 0, 255],
+		[255, 0, 255, 255],
+		[0, 255, 255, 255],
+	],
 	offset: [0, 0],
 	states: [],
+	stateOffset: 0,
+	modified: false,
 };
 
-function toPixelPos(pt) {
+function toCanvasPos(pt) {
 	const x = ~~((pt[0] - ed.offset[0]) / ed.scale);
 	const y = ~~((pt[1] - ed.offset[1]) / ed.scale);
 	return [x, y];
@@ -178,18 +218,37 @@ function nextFrame() {
 	ed.curFrame = (ed.curFrame + 1) % ed.frames.length;
 }
 
+// TODO: buggy
 function pushState() {
 	if (ed.states.length >= MAX_STATES) {
 		return;
 	}
+	if (ed.stateOffset > 0) {
+		ed.states.splice(ed.states.length - ed.stateOffset, ed.stateOffset);
+		ed.stateOffset = 0;
+	}
+	ed.modified = true;
 	ed.states.push(deepCopy(ed.frames));
 }
 
-function popState() {
-	if (ed.states.length <= 0) {
+function undo() {
+	if (ed.stateOffset >= ed.states.length - 1) {
 		return;
 	}
-	ed.frames = ed.states.pop();
+	if (ed.modified) {
+		ed.states.push(deepCopy(ed.frames));
+		ed.modified = false;
+	}
+	ed.stateOffset++;
+	ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
+}
+
+function redo() {
+	if (ed.stateOffset === 0) {
+		return;
+	}
+	ed.stateOffset--;
+	ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
 }
 
 function render() {
@@ -244,16 +303,23 @@ function render() {
 
 	}
 
+	ed.colors.forEach((c, i) => {
+		ctx.fillStyle = colorCSS(c);
+		ctx.fillRect(0, i * 24, 24, 24);
+		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+		ctx.strokeRect(0, i * 24, 24, 24);
+	});
+
 	// cursor
 	switch (ed.mode) {
 		case "pencil": {
-			const [x, y] = toPixelPos(ed.mousePos);
+			const [x, y] = toCanvasPos(ed.mousePos);
 			ctx.fillStyle = colorCSS(ed.color);
 			ctx.fillRect(x * s + ox, y * s + oy, s, s);
 			break;
 		}
 		case "erasor": {
-			const [x, y] = toPixelPos(ed.mousePos);
+			const [x, y] = toCanvasPos(ed.mousePos);
 			ctx.fillStyle = colorCSS([255, 255, 255, 255]);
 			ctx.fillRect(x * s + ox, y * s + oy, s, s);
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
@@ -301,9 +367,13 @@ function start(conf) {
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
 
-		pushState();
+		const [x, y] = toCanvasPos(ed.mousePos);
 
-		const [x, y] = toPixelPos(ed.mousePos);
+		if (x < 0 || y < 0 || x >= ed.width || y >= ed.height) {
+			return;
+		}
+
+		pushState();
 
 		switch (ed.mode) {
 			case "pencil": {
@@ -312,6 +382,10 @@ function start(conf) {
 			}
 			case "erasor": {
 				ed.frames[ed.curFrame].set(x, y, [0, 0, 0, 0]);
+				break;
+			}
+			case "bucket": {
+				ed.frames[ed.curFrame].bucket(x, y, ed.color);
 				break;
 			}
 		}
@@ -334,8 +408,8 @@ function start(conf) {
 		ed.mousePosPrev = [...ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
 
-		const [px, py] = toPixelPos(ed.mousePosPrev);
-		const [x, y] = toPixelPos(ed.mousePos);
+		const [px, py] = toCanvasPos(ed.mousePosPrev);
+		const [x, y] = toCanvasPos(ed.mousePos);
 
 		switch (ed.mode) {
 			case "pencil": {
@@ -368,11 +442,24 @@ function start(conf) {
 			case "e":
 				ed.mode = "erasor";
 				break;
+			case "g":
+				ed.mode = "bucket";
+				break;
 			case "-":
 				scaleDown();
 				break;
 			case "=":
 				scaleUp();
+				break;
+			case "1":
+			case "2":
+			case "3":
+			case "4":
+			case "5":
+			case "6":
+			case "7":
+			case "8":
+				ed.color = ed.colors[parseInt(e.key) - 1];
 				break;
 			case "0":
 				scaleFit();
@@ -390,7 +477,10 @@ function start(conf) {
 				nextFrame();
 				break;
 			case "u":
-				popState();
+				undo();
+				break;
+			case "o":
+				redo();
 				break;
 		}
 	});
