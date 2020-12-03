@@ -5,41 +5,6 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-function makeLine(x0, y0, x1, y1) {
-
-	const arr = [];
-	let dx = x1 - x0;
-	let dy = y1 - y0;
-	let adx = Math.abs(dx);
-	let ady = Math.abs(dy);
-	let eps = 0;
-	let sx = dx > 0 ? 1 : -1;
-	let sy = dy > 0 ? 1 : -1;
-
-	if (adx > ady) {
-		for(let x = x0, y = y0; sx < 0 ? x >= x1 : x <= x1; x += sx) {
-			arr.push([x, y]);
-			eps += ady;
-			if ((eps << 1) >= adx) {
-				y += sy;
-				eps -= adx;
-			}
-		}
-	} else {
-		for(let x = x0, y = y0; sy < 0 ? y >= y1 : y <= y1; y += sy) {
-			arr.push([x, y]);
-			eps += adx;
-			if ((eps << 1) >= ady) {
-				x += sx;
-				eps -= ady;
-			}
-		}
-	}
-
-	return arr;
-
-}
-
 function makeCanvas(w, h) {
 
 	return {
@@ -47,25 +12,40 @@ function makeCanvas(w, h) {
 		width: w,
 		height: h,
 		pixels: Array(w * h * 4).fill(0),
+		blend: true,
+
+		clear() {
+			this.pixels = Array(w * h * 4).fill(0);
+		},
 
 		set(x, y, c) {
 
-			if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-				return;
+			if (!this._checkPt(x, y)) {
+				return false;
 			}
 
-			const i = y * 4 * this.width + x * 4;
+			const i = this._getIndex(x, y);
 
-			this.pixels[i + 0] = c[0];
-			this.pixels[i + 1] = c[1];
-			this.pixels[i + 2] = c[2];
-			this.pixels[i + 3] = c[3];
+			if (this.blend) {
+				const a = c[3] / 255;
+				this.pixels[i + 0] = this.pixels[i + 0] * (1 - a) + c[0] * a;
+				this.pixels[i + 1] = this.pixels[i + 1] * (1 - a) + c[1] * a;
+				this.pixels[i + 2] = this.pixels[i + 2] * (1 - a) + c[2] * a;
+				this.pixels[i + 3] = this.pixels[i + 3] * (1 - a) + c[3] * a;
+			} else {
+				this.pixels[i + 0] = c[0];
+				this.pixels[i + 1] = c[1];
+				this.pixels[i + 2] = c[2];
+				this.pixels[i + 3] = c[3];
+			}
+
+			return true;
 
 		},
 
 		get(x, y) {
 
-			const i = y * 4 * this.width + x * 4;
+			const i = this._getIndex(x, y);
 			const r = this.pixels[i + 0];
 			const g = this.pixels[i + 1];
 			const b = this.pixels[i + 2];
@@ -75,13 +55,119 @@ function makeCanvas(w, h) {
 
 		},
 
-		clear() {
-			this.pixels = Array(w * h * 4).fill(0);
+		line(x0, y0, x1, y1, c) {
+
+			let dx = x1 - x0;
+			let dy = y1 - y0;
+			let adx = Math.abs(dx);
+			let ady = Math.abs(dy);
+			let eps = 0;
+			let sx = dx > 0 ? 1 : -1;
+			let sy = dy > 0 ? 1 : -1;
+
+			if (adx > ady) {
+				for(let x = x0, y = y0; sx < 0 ? x >= x1 : x <= x1; x += sx) {
+					this.set(x, y, c);
+					eps += ady;
+					if ((eps << 1) >= adx) {
+						y += sy;
+						eps -= adx;
+					}
+				}
+			} else {
+				for(let x = x0, y = y0; sy < 0 ? y >= y1 : y <= y1; y += sy) {
+					this.set(x, y, c);
+					eps += adx;
+					if ((eps << 1) >= ady) {
+						x += sx;
+						eps -= ady;
+					}
+				}
+			}
+
+		},
+
+		fillRect(x, y, w, h, c) {
+			if (w < 0) {
+				x += w;
+				w = -w;
+			}
+			if (h < 0) {
+				y += h;
+				h = -h;
+			}
+			for (let xx = x; xx < x + w; xx++) {
+				for (let yy = y; yy < y + h; yy++) {
+					this.set(xx, yy, c);
+				}
+			}
+		},
+
+		strokeRect(x, y, w, h, c) {
+			if (w < 0) {
+				x += w;
+				w = -w;
+			}
+			if (h < 0) {
+				y += h;
+				h = -h;
+			}
+			this.line(x, y, x + w, y, c);
+			this.line(x + w, y, x + w, y + h, c);
+			this.line(x + w, y + h, x, y + h, c);
+			this.line(x, y + h, x, y, c);
+		},
+
+		fillCircle(x, y, r, c) {
+			r = Math.abs(r);
+			for (let xx = x - r; xx <= x + r; xx++) {
+				for (let yy = y - r; yy <= y + r; yy++) {
+					const dist = Math.sqrt( Math.pow(xx - x, 2) + Math.pow(yy - y, 2) );
+					if (dist <= r) {
+						this.set(xx, yy, c);
+					}
+				}
+			}
+		},
+
+		strokeCircle(x, y, r, c) {
+			// TODO
+		},
+
+		bucket(x, y, color) {
+			if (!this._checkPt(x, y)) {
+				return false;
+			}
+			const target = this.get(x, y);
+			if (colorCmp(target, color)) {
+				return false;
+			}
+			this._bucketRec(x, y, target, color);
+			return true;
+		},
+
+		merge(other) {
+			if (other.width !== this.width || other.height !== this.height) {
+				return;
+			}
+			for (let i = 0; i < this.width; i++) {
+				for (let j = 0; j < this.height; j++) {
+					this.set(i, j, other.get(i, j));
+				}
+			}
+		},
+
+		_checkPt(x, y) {
+			return x >= 0 && x < this.width && y >= 0 && y < this.height;
+		},
+
+		_getIndex(x, y) {
+			return y * 4 * this.width + x * 4;
 		},
 
 		_bucketRec(x, y, target, color) {
 
-			if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+			if (!this._checkPt(x, y)) {
 				return;
 			}
 
@@ -95,14 +181,6 @@ function makeCanvas(w, h) {
 			this._bucketRec(x + 1, y, target, color);
 			this._bucketRec(x, y + 1, target, color);
 
-		},
-
-		bucket(x, y, color) {
-			const target = this.get(x, y);
-			if (colorCmp(target, color)) {
-				return;
-			}
-			this._bucketRec(x, y, target, color);
 		},
 
 		toImageData() {
@@ -139,9 +217,11 @@ const ed = {
 	height: 0,
 	frames: [],
 	curFrame: 0,
+	tmpCanvas: undefined,
 	mouseDown: false,
 	mousePos: [0, 0],
 	mousePosPrev: [0, 0],
+	mouseStartPos: undefined,
 	mode: "pencil",
 	color: [0, 0, 0, 255],
 	colors: [
@@ -282,6 +362,16 @@ function render() {
 		}
 	}
 
+	for (let x = 0; x < ed.tmpCanvas.width; x++) {
+		for (let y = 0; y < ed.tmpCanvas.height; y++) {
+			const c = ed.tmpCanvas.get(x, y);
+			if (c[3] !== 0) {
+				ctx.fillStyle = colorCSS(c);
+				ctx.fillRect(x * s + ox, y * s + oy, s, s);
+			}
+		}
+	}
+
 	ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 	ctx.strokeRect(ox, oy, canvas.width * s, canvas.height * s);
 
@@ -342,6 +432,7 @@ function start(conf) {
 	ed.width = conf.width;
 	ed.height = conf.height;
 	ed.frames[0] = makeCanvas(ed.width, ed.height);
+	ed.tmpCanvas = makeCanvas(ed.width, ed.height);
 
 	scaleFit();
 
@@ -350,9 +441,9 @@ function start(conf) {
 	ed.canvasEl.addEventListener("wheel", (e) => {
 		e.preventDefault();
 		if (e.altKey) {
-			if (e.deltaY > 0) {
+			if (e.deltaY < 0) {
 				scaleUp();
-			} else if (e.deltaY < 0) {
+			} else if (e.deltaY > 0) {
 				scaleDown();
 			}
 		} else {
@@ -366,26 +457,26 @@ function start(conf) {
 		ed.mouseDown = true;
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
+		ed.mouseStartPos = [...ed.mousePos];
 
 		const [x, y] = toCanvasPos(ed.mousePos);
-
-		if (x < 0 || y < 0 || x >= ed.width || y >= ed.height) {
-			return;
-		}
+		const canvas = ed.frames[ed.curFrame];
 
 		pushState();
 
 		switch (ed.mode) {
 			case "pencil": {
-				ed.frames[ed.curFrame].set(x, y, ed.color);
+				canvas.set(x, y, ed.color);
 				break;
 			}
 			case "erasor": {
-				ed.frames[ed.curFrame].set(x, y, [0, 0, 0, 0]);
+				canvas.blend = false;
+				canvas.set(x, y, [0, 0, 0, 0]);
+				canvas.blend = true;
 				break;
 			}
 			case "bucket": {
-				ed.frames[ed.curFrame].bucket(x, y, ed.color);
+				canvas.bucket(x, y, ed.color);
 				break;
 			}
 		}
@@ -397,8 +488,17 @@ function start(conf) {
 		ed.mouseDown = false;
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
+		ed.mouseStartPos = undefined;
 
 		switch (ed.mode) {
+			case "rect":
+				ed.frames[ed.curFrame].merge(ed.tmpCanvas);
+				ed.tmpCanvas.clear();
+				break;
+			case "circle":
+				ed.frames[ed.curFrame].merge(ed.tmpCanvas);
+				ed.tmpCanvas.clear();
+				break;
 		}
 
 	});
@@ -410,26 +510,35 @@ function start(conf) {
 
 		const [px, py] = toCanvasPos(ed.mousePosPrev);
 		const [x, y] = toCanvasPos(ed.mousePos);
+		const canvas = ed.frames[ed.curFrame];
 
 		switch (ed.mode) {
-			case "pencil": {
+			case "pencil":
 				if (ed.mouseDown) {
-					const pts = makeLine(px, py, x, y);
-					for (const pt of pts) {
-						ed.frames[ed.curFrame].set(pt[0], pt[1], ed.color);
-					}
+					canvas.line(px, py, x, y, ed.color);
 				}
 				break;
-			}
-			case "erasor": {
+			case "erasor":
 				if (ed.mouseDown) {
-					const pts = makeLine(px, py, x, y);
-					for (const pt of pts) {
-						ed.frames[ed.curFrame].set(pt[0], pt[1], [0, 0, 0, 0]);
-					}
+					canvas.blend = false;
+					canvas.line(px, py, x, y, [0, 0, 0, 0]);
+					canvas.blend = true;
 				}
 				break;
-			}
+			case "rect":
+				if (ed.mouseDown) {
+					const [sx, sy] = toCanvasPos(ed.mouseStartPos);
+					ed.tmpCanvas.clear();
+					ed.tmpCanvas.fillRect(sx, sy, x - sx, y - sy, ed.color);
+				}
+				break;
+			case "circle":
+				if (ed.mouseDown) {
+					const [sx, sy] = toCanvasPos(ed.mouseStartPos);
+					ed.tmpCanvas.clear();
+					ed.tmpCanvas.fillCircle(sx, sy, x - sx, ed.color);
+				}
+				break;
 		}
 
 	});
@@ -444,6 +553,15 @@ function start(conf) {
 				break;
 			case "g":
 				ed.mode = "bucket";
+				break;
+			case "l":
+				ed.mode = "line";
+				break;
+			case "r":
+				ed.mode = "rect";
+				break;
+			case "c":
+				ed.mode = "circle";
 				break;
 			case "-":
 				scaleDown();
