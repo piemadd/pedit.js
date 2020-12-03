@@ -5,6 +5,26 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
+function deepCopy(input) {
+
+	if (typeof(input) !== "object" || input === null) {
+		return input;
+	}
+
+	const out = Array.isArray(input) ? [] : {};
+
+	for (const key in input) {
+		out[key] = deepCopy(input[key]);
+	}
+
+	return out;
+
+}
+
+function clamp(v, a, b) {
+	return Math.max(Math.min(v, b), a);
+}
+
 function makeCanvas(w, h) {
 
 	return {
@@ -187,28 +207,19 @@ function makeCanvas(w, h) {
 			return new ImageData(new Uint8ClampedArray(this.pixels), this.width, this.height);
 		},
 
+		clampPt(pt) {
+			return [
+				clamp(pt[0], 0, this.width),
+				clamp(pt[1], 0, this.height),
+			];
+		},
+
 	};
 
 }
 
 function colorCmp(c1, c2) {
 	return c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2] && c1[3] == c2[3];
-}
-
-function deepCopy(input) {
-
-	if (typeof(input) !== "object" || input === null) {
-		return input;
-	}
-
-	const out = Array.isArray(input) ? [] : {};
-
-	for (const key in input) {
-		out[key] = deepCopy(input[key]);
-	}
-
-	return out;
-
 }
 
 const ed = {
@@ -224,6 +235,7 @@ const ed = {
 	mouseStartPos: undefined,
 	mode: "pencil",
 	color: [0, 0, 0, 255],
+	selectArea: undefined,
 	colors: [
 		[0, 0, 0, 255],
 		[255, 255, 255, 255],
@@ -372,6 +384,16 @@ function render() {
 		}
 	}
 
+	if (ed.selectArea) {
+		const p1 = ed.selectArea[0];
+		const p2 = ed.selectArea[1];
+		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+		ctx.setLineDash([5, 5]);
+		ctx.strokeRect(p1[0] * s + ox, p1[1] * s + oy, (p2[0] - p1[0]) * s, (p2[1] - p1[1]) * s);
+		ctx.setLineDash([]);
+	}
+
+
 	ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 	ctx.strokeRect(ox, oy, canvas.width * s, canvas.height * s);
 
@@ -499,6 +521,9 @@ function start(conf) {
 				ed.frames[ed.curFrame].merge(ed.tmpCanvas);
 				ed.tmpCanvas.clear();
 				break;
+			case "select":
+				// TODO
+				break;
 		}
 
 	});
@@ -539,19 +564,26 @@ function start(conf) {
 					ed.tmpCanvas.fillCircle(sx, sy, x - sx, ed.color);
 				}
 				break;
+			case "select":
+				if (ed.mouseDown) {
+					const [sx, sy] = canvas.clampPt(toCanvasPos(ed.mouseStartPos));
+					const [dx, dy] = canvas.clampPt([x, y]);
+					ed.selectArea = [[sx, sy], [dx, dy]];
+				}
+				break;
 		}
 
 	});
 
 	document.addEventListener("keydown", (e) => {
 		switch (e.key) {
-			case "b":
+			case "p":
 				ed.mode = "pencil";
 				break;
 			case "e":
 				ed.mode = "erasor";
 				break;
-			case "g":
+			case "b":
 				ed.mode = "bucket";
 				break;
 			case "l":
@@ -562,6 +594,9 @@ function start(conf) {
 				break;
 			case "c":
 				ed.mode = "circle";
+				break;
+			case "s":
+				ed.mode = "select";
 				break;
 			case "-":
 				scaleDown();
@@ -599,6 +634,9 @@ function start(conf) {
 				break;
 			case "o":
 				redo();
+				break;
+			case "Escape":
+				ed.selectArea = undefined;
 				break;
 		}
 	});
