@@ -32,7 +32,8 @@ function makeCanvas(w, h) {
 		width: w,
 		height: h,
 		pixels: Array(w * h * 4).fill(0),
-		blend: true,
+		blend: "alpha",
+		scissorRect: undefined,
 
 		clear() {
 			this.pixels = Array(w * h * 4).fill(0);
@@ -46,17 +47,29 @@ function makeCanvas(w, h) {
 
 			const i = this._getIndex(x, y);
 
-			if (this.blend) {
-				const a = c[3] / 255;
-				this.pixels[i + 0] = this.pixels[i + 0] * (1 - a) + c[0] * a;
-				this.pixels[i + 1] = this.pixels[i + 1] * (1 - a) + c[1] * a;
-				this.pixels[i + 2] = this.pixels[i + 2] * (1 - a) + c[2] * a;
-				this.pixels[i + 3] = this.pixels[i + 3] * (1 - a) + c[3] * a;
-			} else {
-				this.pixels[i + 0] = c[0];
-				this.pixels[i + 1] = c[1];
-				this.pixels[i + 2] = c[2];
-				this.pixels[i + 3] = c[3];
+			switch (this.blend) {
+				case "alpha": {
+					const a = c[3] / 255;
+					this.pixels[i + 0] = this.pixels[i + 0] * (1 - a) + c[0] * a;
+					this.pixels[i + 1] = this.pixels[i + 1] * (1 - a) + c[1] * a;
+					this.pixels[i + 2] = this.pixels[i + 2] * (1 - a) + c[2] * a;
+					this.pixels[i + 3] = this.pixels[i + 3] * (1 - a) + c[3] * a;
+					break;
+				}
+				case "replace":
+					this.pixels[i + 0] = c[0];
+					this.pixels[i + 1] = c[1];
+					this.pixels[i + 2] = c[2];
+					this.pixels[i + 3] = c[3];
+					break;
+				case "add":
+					const da = this.pixels[i + 3] / 255;
+					const sa = c[3] / 255;
+					this.pixels[i + 0] = this.pixels[i + 0] * da + c[0] * sa;
+					this.pixels[i + 1] = this.pixels[i + 1] * da + c[1] * sa;
+					this.pixels[i + 2] = this.pixels[i + 2] * da + c[2] * sa;
+					this.pixels[i + 3] = this.pixels[i + 3] * da + c[3] * sa;
+					break;
 			}
 
 			return true;
@@ -159,7 +172,7 @@ function makeCanvas(w, h) {
 				return false;
 			}
 			const target = this.get(x, y);
-			if (colorCmp(target, color)) {
+			if (colorEq(target, color)) {
 				return false;
 			}
 			this._bucketRec(x, y, target, color);
@@ -178,7 +191,12 @@ function makeCanvas(w, h) {
 		},
 
 		_checkPt(x, y) {
-			return x >= 0 && x < this.width && y >= 0 && y < this.height;
+			if (this.scissorRect) {
+				const r = this.scissorRect;
+				return x >= r[0][0] && x < r[1][0] && y >= r[0][1] && y < r[1][1];
+			} else {
+				return x >= 0 && x < this.width && y >= 0 && y < this.height;
+			}
 		},
 
 		_getIndex(x, y) {
@@ -191,7 +209,7 @@ function makeCanvas(w, h) {
 				return;
 			}
 
-			if (!colorCmp(this.get(x, y), target)) {
+			if (!colorEq(this.get(x, y), target)) {
 				return;
 			}
 
@@ -218,7 +236,7 @@ function makeCanvas(w, h) {
 
 }
 
-function colorCmp(c1, c2) {
+function colorEq(c1, c2) {
 	return c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2] && c1[3] == c2[3];
 }
 
@@ -343,7 +361,7 @@ function redo() {
 	ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
 }
 
-function render() {
+function render(t) {
 
 	const ctx = ed.ctx;
 	const canvas = ed.frames[ed.curFrame];
@@ -442,8 +460,8 @@ function render() {
 
 }
 
-function update() {
-	render();
+function update(t) {
+	render(t);
 	requestAnimationFrame(update);
 }
 
@@ -492,9 +510,9 @@ function start(conf) {
 				break;
 			}
 			case "erasor": {
-				canvas.blend = false;
+				canvas.blend = "replace";
 				canvas.set(x, y, [0, 0, 0, 0]);
-				canvas.blend = true;
+				canvas.blend = "alpha";
 				break;
 			}
 			case "bucket": {
@@ -511,18 +529,19 @@ function start(conf) {
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
 		ed.mouseStartPos = undefined;
+		const canvas = ed.frames[ed.curFrame];
 
 		switch (ed.mode) {
 			case "rect":
-				ed.frames[ed.curFrame].merge(ed.tmpCanvas);
+				canvas.merge(ed.tmpCanvas);
 				ed.tmpCanvas.clear();
 				break;
 			case "circle":
-				ed.frames[ed.curFrame].merge(ed.tmpCanvas);
+				canvas.merge(ed.tmpCanvas);
 				ed.tmpCanvas.clear();
 				break;
 			case "select":
-				// TODO
+				canvas.scissorRect = deepCopy(ed.selectArea);
 				break;
 		}
 
@@ -545,9 +564,9 @@ function start(conf) {
 				break;
 			case "erasor":
 				if (ed.mouseDown) {
-					canvas.blend = false;
+					canvas.blend = "replace";
 					canvas.line(px, py, x, y, [0, 0, 0, 0]);
-					canvas.blend = true;
+					canvas.blend = "alpha";
 				}
 				break;
 			case "rect":
@@ -637,6 +656,7 @@ function start(conf) {
 				break;
 			case "Escape":
 				ed.selectArea = undefined;
+				ed.frames[ed.curFrame].scissorRect = undefined;
 				break;
 		}
 	});
