@@ -5,6 +5,21 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
+const cursors = {
+	pencil: "crosshair",
+	erasor: "crosshair",
+	select: "cell",
+	line: "crosshair",
+	rect: "crosshair",
+	circle: "crosshair",
+	bucket: "crosshair",
+	move: "move",
+};
+
+function base64Cursor(url) {
+	return `url(data:image/png;base64,${url}), auto`;
+}
+
 function deepCopy(input) {
 
 	if (typeof(input) !== "object" || input === null) {
@@ -253,7 +268,6 @@ const ed = {
 	mouseStartPos: undefined,
 	mode: "pencil",
 	color: [0, 0, 0, 255],
-	selectArea: undefined,
 	colors: [
 		[0, 0, 0, 255],
 		[255, 255, 255, 255],
@@ -361,7 +375,7 @@ function redo() {
 	ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
 }
 
-function render(t) {
+function render() {
 
 	const ctx = ed.ctx;
 	const canvas = ed.frames[ed.curFrame];
@@ -402,9 +416,9 @@ function render(t) {
 		}
 	}
 
-	if (ed.selectArea) {
-		const p1 = ed.selectArea[0];
-		const p2 = ed.selectArea[1];
+	if (canvas.scissorRect) {
+		const p1 = canvas.scissorRect[0];
+		const p2 = canvas.scissorRect[1];
 		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 		ctx.setLineDash([5, 5]);
 		ctx.strokeRect(p1[0] * s + ox, p1[1] * s + oy, (p2[0] - p1[0]) * s, (p2[1] - p1[1]) * s);
@@ -433,6 +447,7 @@ function render(t) {
 
 	}
 
+	// colors
 	ed.colors.forEach((c, i) => {
 		ctx.fillStyle = colorCSS(c);
 		ctx.fillRect(0, i * 24, 24, 24);
@@ -440,29 +455,45 @@ function render(t) {
 		ctx.strokeRect(0, i * 24, 24, 24);
 	});
 
+	ed.colors.forEach((c, i) => {
+		if (colorEq(c, ed.color)) {
+			ctx.lineWidth = 5;
+			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+			ctx.strokeRect(0, i * 24, 24, 24);
+			ctx.lineWidth = 1;
+		}
+	});
+
+	const [x, y] = toCanvasPos(ed.mousePos);
+
 	// cursor
 	switch (ed.mode) {
-		case "pencil": {
-			const [x, y] = toCanvasPos(ed.mousePos);
+		case "pencil":
+		case "rect":
+		case "line":
+		case "circle":
+		case "bucket":
 			ctx.fillStyle = colorCSS(ed.color);
 			ctx.fillRect(x * s + ox, y * s + oy, s, s);
 			break;
-		}
-		case "erasor": {
-			const [x, y] = toCanvasPos(ed.mousePos);
+		case "erasor":
 			ctx.fillStyle = colorCSS([255, 255, 255, 255]);
 			ctx.fillRect(x * s + ox, y * s + oy, s, s);
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 			ctx.strokeRect(x * s + ox, y * s + oy, s, s);
 			break;
-		}
 	}
 
 }
 
-function update(t) {
-	render(t);
+function update() {
+	render();
 	requestAnimationFrame(update);
+}
+
+function setMode(m) {
+	ed.mode = m;
+	ed.canvasEl.style.cursor = cursors[ed.mode];
 }
 
 function start(conf) {
@@ -473,6 +504,7 @@ function start(conf) {
 	ed.height = conf.height;
 	ed.frames[0] = makeCanvas(ed.width, ed.height);
 	ed.tmpCanvas = makeCanvas(ed.width, ed.height);
+	ed.canvasEl.style.cursor = cursors[ed.mode];
 
 	scaleFit();
 
@@ -540,9 +572,6 @@ function start(conf) {
 				canvas.merge(ed.tmpCanvas);
 				ed.tmpCanvas.clear();
 				break;
-			case "select":
-				canvas.scissorRect = deepCopy(ed.selectArea);
-				break;
 		}
 
 	});
@@ -587,7 +616,7 @@ function start(conf) {
 				if (ed.mouseDown) {
 					const [sx, sy] = canvas.clampPt(toCanvasPos(ed.mouseStartPos));
 					const [dx, dy] = canvas.clampPt([x, y]);
-					ed.selectArea = [[sx, sy], [dx, dy]];
+					canvas.scissorRect = [[sx, sy], [dx, dy]];
 				}
 				break;
 		}
@@ -597,25 +626,28 @@ function start(conf) {
 	document.addEventListener("keydown", (e) => {
 		switch (e.key) {
 			case "p":
-				ed.mode = "pencil";
+				setMode("pencil");
 				break;
 			case "e":
-				ed.mode = "erasor";
+				setMode("erasor");
 				break;
 			case "b":
-				ed.mode = "bucket";
+				setMode("bucket");
 				break;
 			case "l":
-				ed.mode = "line";
+				setMode("line");
 				break;
 			case "r":
-				ed.mode = "rect";
+				setMode("rect");
 				break;
 			case "c":
-				ed.mode = "circle";
+				setMode("circle");
 				break;
 			case "s":
-				ed.mode = "select";
+				setMode("select");
+				break;
+			case "m":
+				setMode("move");
 				break;
 			case "-":
 				scaleDown();
@@ -655,7 +687,6 @@ function start(conf) {
 				redo();
 				break;
 			case "Escape":
-				ed.selectArea = undefined;
 				ed.frames[ed.curFrame].scissorRect = undefined;
 				break;
 		}
