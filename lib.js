@@ -5,15 +5,39 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-const cursors = {
-	pencil: "crosshair",
-	erasor: "crosshair",
-	select: "cell",
-	line: "crosshair",
-	rect: "crosshair",
-	circle: "crosshair",
-	bucket: "crosshair",
-	move: "move",
+const modeData = {
+	pencil: {
+		cursor: "crosshair",
+		key: "p",
+	},
+	erasor: {
+		cursor: "crosshair",
+		key: "e",
+	},
+	select: {
+		cursor: "cell",
+		key: "s",
+	},
+	line: {
+		cursor: "crosshair",
+		key: "l",
+	},
+	rect: {
+		cursor: "crosshair",
+		key: "r",
+	},
+	circle: {
+		cursor: "crosshair",
+		key: "c",
+	},
+	bucket: {
+		cursor: "crosshair",
+		key: "b",
+	},
+	move: {
+		cursor: "move",
+		key: "m",
+	},
 };
 
 function base64Cursor(url) {
@@ -56,7 +80,7 @@ function makeCanvas(w, h) {
 
 		set(x, y, c) {
 
-			if (!this._checkPt(x, y)) {
+			if (!this.checkPt(x, y)) {
 				return false;
 			}
 
@@ -183,7 +207,7 @@ function makeCanvas(w, h) {
 		},
 
 		bucket(x, y, color) {
-			if (!this._checkPt(x, y)) {
+			if (!this.checkPt(x, y)) {
 				return false;
 			}
 			const target = this.get(x, y);
@@ -205,7 +229,7 @@ function makeCanvas(w, h) {
 			}
 		},
 
-		_checkPt(x, y) {
+		checkPt(x, y) {
 			if (this.scissorRect) {
 				const r = this.scissorRect;
 				return x >= r[0][0] && x < r[1][0] && y >= r[0][1] && y < r[1][1];
@@ -220,7 +244,7 @@ function makeCanvas(w, h) {
 
 		_bucketRec(x, y, target, color) {
 
-			if (!this._checkPt(x, y)) {
+			if (!this.checkPt(x, y)) {
 				return;
 			}
 
@@ -263,6 +287,7 @@ const ed = {
 	curFrame: 0,
 	tmpCanvas: undefined,
 	mouseDown: false,
+	mousePressed: false,
 	mousePos: [0, 0],
 	mousePosPrev: [0, 0],
 	mouseStartPos: undefined,
@@ -342,6 +367,19 @@ function nextFrame() {
 	ed.curFrame = (ed.curFrame + 1) % ed.frames.length;
 }
 
+function mouseInRect(x, y, w, h) {
+	if (w < 0) {
+		x += w;
+		w = -w;
+	}
+	if (h < 0) {
+		y += h;
+		h = -h;
+	}
+	const [mx, my] = ed.mousePos;
+	return mx >= x && mx <= x + w && my >= y && my <= y + h;
+}
+
 // TODO: buggy
 function pushState() {
 	if (ed.states.length >= MAX_STATES) {
@@ -377,6 +415,7 @@ function redo() {
 
 function render() {
 
+	let hovering = false;
 	const ctx = ed.ctx;
 	const canvas = ed.frames[ed.curFrame];
 	const cw = ed.canvasEl.width;
@@ -435,29 +474,49 @@ function render() {
 		let x = 0;
 
 		for (let i = 0; i < ed.frames.length; i++) {
+
 			const w = i == ed.curFrame ? 32 : 24;
 			const h = i == ed.curFrame ? 24 : 16;
 			const c = i == ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
+
 			ctx.fillStyle = colorCSS(c);
 			ctx.fillRect(ox + x, oy, w, -h);
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 			ctx.strokeRect(ox + x, oy, w, -h);
+
+			if (mouseInRect(ox + x, oy, w, -h)) {
+				hovering = true;
+				if (ed.mousePressed) {
+					ed.curFrame = i;
+				}
+			}
+
 			x += w;
+
 		}
 
 	}
 
 	// colors
 	ed.colors.forEach((c, i) => {
+
 		ctx.fillStyle = colorCSS(c);
 		ctx.fillRect(0, i * 24, 24, 24);
 		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 		ctx.strokeRect(0, i * 24, 24, 24);
+
+		if (mouseInRect(0, i * 24, 24, 24)) {
+			hovering = true;
+			if (ed.mousePressed) {
+				ed.color = ed.colors[i];
+			}
+		}
+
 	});
 
 	ed.colors.forEach((c, i) => {
 		if (colorEq(c, ed.color)) {
-			ctx.lineWidth = 5;
+			ctx.lineWidth = 4;
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 			ctx.strokeRect(0, i * 24, 24, 24);
 			ctx.lineWidth = 1;
@@ -467,33 +526,38 @@ function render() {
 	const [x, y] = toCanvasPos(ed.mousePos);
 
 	// cursor
-	switch (ed.mode) {
-		case "pencil":
-		case "rect":
-		case "line":
-		case "circle":
-		case "bucket":
-			ctx.fillStyle = colorCSS(ed.color);
-			ctx.fillRect(x * s + ox, y * s + oy, s, s);
-			break;
-		case "erasor":
-			ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-			ctx.fillRect(x * s + ox, y * s + oy, s, s);
-			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-			ctx.strokeRect(x * s + ox, y * s + oy, s, s);
-			break;
+	if (canvas.checkPt(x, y)) {
+		switch (ed.mode) {
+			case "pencil":
+			case "rect":
+			case "line":
+			case "circle":
+			case "bucket":
+				ctx.fillStyle = colorCSS(ed.color);
+				ctx.fillRect(x * s + ox, y * s + oy, s, s);
+				break;
+			case "erasor":
+				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+				ctx.fillRect(x * s + ox, y * s + oy, s, s);
+				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+				ctx.strokeRect(x * s + ox, y * s + oy, s, s);
+				break;
+		}
 	}
+
+	if (hovering) {
+		ed.canvasEl.style.cursor = "pointer";
+	} else {
+		ed.canvasEl.style.cursor = modeData[ed.mode].cursor;
+	}
+
+	ed.mousePressed = false;
 
 }
 
 function update() {
 	render();
 	requestAnimationFrame(update);
-}
-
-function setMode(m) {
-	ed.mode = m;
-	ed.canvasEl.style.cursor = cursors[ed.mode];
 }
 
 function start(conf) {
@@ -504,7 +568,6 @@ function start(conf) {
 	ed.height = conf.height;
 	ed.frames[0] = makeCanvas(ed.width, ed.height);
 	ed.tmpCanvas = makeCanvas(ed.width, ed.height);
-	ed.canvasEl.style.cursor = cursors[ed.mode];
 
 	scaleFit();
 
@@ -527,6 +590,7 @@ function start(conf) {
 	ed.canvasEl.addEventListener("mousedown", (e) => {
 
 		ed.mouseDown = true;
+		ed.mousePressed = true;
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
 		ed.mouseStartPos = [...ed.mousePos];
@@ -624,31 +688,14 @@ function start(conf) {
 	});
 
 	document.addEventListener("keydown", (e) => {
+		for (const mode in modeData) {
+			const data = modeData[mode];
+			if (data.key === e.key) {
+				ed.mode = mode;
+				return;
+			}
+		}
 		switch (e.key) {
-			case "p":
-				setMode("pencil");
-				break;
-			case "e":
-				setMode("erasor");
-				break;
-			case "b":
-				setMode("bucket");
-				break;
-			case "l":
-				setMode("line");
-				break;
-			case "r":
-				setMode("rect");
-				break;
-			case "c":
-				setMode("circle");
-				break;
-			case "s":
-				setMode("select");
-				break;
-			case "m":
-				setMode("move");
-				break;
 			case "-":
 				scaleDown();
 				break;
