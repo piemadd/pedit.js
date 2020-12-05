@@ -5,44 +5,50 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-const modeData = {
-	pencil: {
+const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAIAAAAAQCAYAAADeWHeIAAAAAXNSR0IArs4c6QAAAQ9JREFUaIHtmFEOwyAIQHHp/a/svmwcEwERq9aXNKkdCApCJsDhcHgv4WkHJiai8ap7FaHi+wqLqi7AyR4UbFLfsYzF1zzpKPucDyqd2RNAs2h8YjlK80kCyMlYkqCH/VwO86d3KZSLEzjpt2L1r5cPo6sW5QcA48vH2YH80YKD5Bm0NL/EzxRgqwylZ5Xh7P787pkAb6c1CSxI7d1yVAt4GmohM5RWDSPbQSTeS+P0LZwK4M+oShDQe956S604APi2gIgeDdSJ8TxJ0kC1nGjN3BYZqV+3HNUCrBvdI1B401Yq/SVGtQNu/kAOFqdXlbFcBEmoJUHPiyDRPcBOCdCbHa6Cd6qgh0ZG/xU9rMQX+XA9JEvVwYsAAAAASUVORK5CYII=");
+
+const toolData = {
+	pen: {
 		cursor: "crosshair",
 		key: "p",
+		icon: 0,
 	},
 	erasor: {
 		cursor: "crosshair",
 		key: "e",
-	},
-	select: {
-		cursor: "cell",
-		key: "s",
-	},
-	line: {
-		cursor: "crosshair",
-		key: "l",
-	},
-	rect: {
-		cursor: "crosshair",
-		key: "r",
-	},
-	circle: {
-		cursor: "crosshair",
-		key: "c",
+		icon: 1,
 	},
 	bucket: {
 		cursor: "crosshair",
 		key: "b",
+		icon: 2,
+	},
+	rect: {
+		cursor: "crosshair",
+		key: "r",
+		icon: 3,
+	},
+	circle: {
+		cursor: "crosshair",
+		key: "c",
+		icon: 4,
+	},
+	line: {
+		cursor: "crosshair",
+		key: "l",
+		icon: 5,
+	},
+	select: {
+		cursor: "cell",
+		key: "s",
+		icon: 6,
 	},
 	move: {
 		cursor: "move",
 		key: "m",
+		icon: 7,
 	},
 };
-
-function base64Cursor(url) {
-	return `url(data:image/png;base64,${url}), auto`;
-}
 
 function deepCopy(input) {
 
@@ -58,6 +64,15 @@ function deepCopy(input) {
 
 	return out;
 
+}
+
+function loadImg(code, f) {
+	const img = new Image();
+	img.src = "data:image/png;base64," + code;
+	img.onload = () => {
+		img.loaded = true;
+	};
+	return img;
 }
 
 function clamp(v, a, b) {
@@ -291,7 +306,7 @@ const ed = {
 	mousePos: [0, 0],
 	mousePosPrev: [0, 0],
 	mouseStartPos: undefined,
-	mode: "pencil",
+	tool: "pen",
 	color: [0, 0, 0, 255],
 	colors: [
 		[0, 0, 0, 255],
@@ -519,16 +534,64 @@ function render() {
 			ctx.lineWidth = 4;
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 			ctx.strokeRect(0, i * 24, 24, 24);
-			ctx.lineWidth = 1;
+			ctx.lineWidth = 2;
 		}
 	});
+
+	// tools
+	{
+
+		let y = 0;
+		const w = 32;
+		const h = 32;
+
+		for (const tool in toolData) {
+
+			const data = toolData[tool];
+			const x = cw - w;
+
+			if (mouseInRect(x, y, w, h)) {
+				hovering = true;
+				if (ed.mousePressed) {
+					ed.tool = tool;
+				}
+			} else {
+			}
+
+			ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+			ctx.fillRect(x, y, w, h);
+			ctx.drawImage(icons, 16 * data.icon, 0, 16, 16, x, y, w, h);
+			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+			ctx.strokeRect(x, y, w, h);
+
+			y += 32;
+
+		}
+
+		y = 0;
+
+		for (const tool in toolData) {
+
+			if (ed.tool === tool) {
+				const x = cw - w;
+				ctx.lineWidth = 4;
+				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+				ctx.strokeRect(x, y, w, h);
+				ctx.lineWidth = 2;
+			}
+
+			y += 32;
+
+		}
+
+	}
 
 	const [x, y] = toCanvasPos(ed.mousePos);
 
 	// cursor
 	if (canvas.checkPt(x, y)) {
-		switch (ed.mode) {
-			case "pencil":
+		switch (ed.tool) {
+			case "pen":
 			case "rect":
 			case "line":
 			case "circle":
@@ -548,7 +611,7 @@ function render() {
 	if (hovering) {
 		ed.canvasEl.style.cursor = "pointer";
 	} else {
-		ed.canvasEl.style.cursor = modeData[ed.mode].cursor;
+		ed.canvasEl.style.cursor = toolData[ed.tool].cursor;
 	}
 
 	ed.mousePressed = false;
@@ -593,15 +656,14 @@ function start(conf) {
 		ed.mousePressed = true;
 		ed.mousePosPrev = [ed.mousePos, ed.mousePos];
 		ed.mousePos = [e.offsetX, e.offsetY];
-		ed.mouseStartPos = [...ed.mousePos];
 
 		const [x, y] = toCanvasPos(ed.mousePos);
 		const canvas = ed.frames[ed.curFrame];
 
 		pushState();
 
-		switch (ed.mode) {
-			case "pencil": {
+		switch (ed.tool) {
+			case "pen": {
 				canvas.set(x, y, ed.color);
 				break;
 			}
@@ -615,6 +677,12 @@ function start(conf) {
 				canvas.bucket(x, y, ed.color);
 				break;
 			}
+			case "rect":
+			case "circle":
+			case "line":
+			case "select":
+				ed.mouseStartPos = [...ed.mousePos];
+				break;
 		}
 
 	});
@@ -627,11 +695,9 @@ function start(conf) {
 		ed.mouseStartPos = undefined;
 		const canvas = ed.frames[ed.curFrame];
 
-		switch (ed.mode) {
+		switch (ed.tool) {
 			case "rect":
-				canvas.merge(ed.tmpCanvas);
-				ed.tmpCanvas.clear();
-				break;
+			case "line":
 			case "circle":
 				canvas.merge(ed.tmpCanvas);
 				ed.tmpCanvas.clear();
@@ -649,52 +715,56 @@ function start(conf) {
 		const [x, y] = toCanvasPos(ed.mousePos);
 		const canvas = ed.frames[ed.curFrame];
 
-		switch (ed.mode) {
-			case "pencil":
-				if (ed.mouseDown) {
-					canvas.line(px, py, x, y, ed.color);
-				}
+		if (!ed.mouseDown) {
+			return;
+		}
+
+		let [sx, sy] = [0, 0];
+
+		if (ed.mouseStartPos) {
+			[sx, sy] = toCanvasPos(ed.mouseStartPos);
+		}
+
+		switch (ed.tool) {
+			case "pen":
+				canvas.line(px, py, x, y, ed.color);
 				break;
 			case "erasor":
-				if (ed.mouseDown) {
-					canvas.blend = "replace";
-					canvas.line(px, py, x, y, [0, 0, 0, 0]);
-					canvas.blend = "alpha";
-				}
+				canvas.blend = "replace";
+				canvas.line(px, py, x, y, [0, 0, 0, 0]);
+				canvas.blend = "alpha";
 				break;
 			case "rect":
-				if (ed.mouseDown) {
-					const [sx, sy] = toCanvasPos(ed.mouseStartPos);
-					ed.tmpCanvas.clear();
-					ed.tmpCanvas.fillRect(sx, sy, x - sx, y - sy, ed.color);
-				}
+				ed.tmpCanvas.clear();
+				ed.tmpCanvas.fillRect(sx, sy, x - sx, y - sy, ed.color);
+				break;
+			case "line":
+				ed.tmpCanvas.clear();
+				ed.tmpCanvas.line(sx, sy, x, y, ed.color);
 				break;
 			case "circle":
-				if (ed.mouseDown) {
-					const [sx, sy] = toCanvasPos(ed.mouseStartPos);
-					ed.tmpCanvas.clear();
-					ed.tmpCanvas.fillCircle(sx, sy, x - sx, ed.color);
-				}
+				ed.tmpCanvas.clear();
+				ed.tmpCanvas.fillCircle(sx, sy, x - sx, ed.color);
 				break;
 			case "select":
-				if (ed.mouseDown) {
-					const [sx, sy] = canvas.clampPt(toCanvasPos(ed.mouseStartPos));
-					const [dx, dy] = canvas.clampPt([x, y]);
-					canvas.scissorRect = [[sx, sy], [dx, dy]];
-				}
+				const [dx, dy] = canvas.clampPt([x, y]);
+				canvas.scissorRect = [[sx, sy], [dx, dy]];
+				ed.tmpCanvas.scissorRect = [[sx, sy], [dx, dy]];
 				break;
 		}
 
 	});
 
 	document.addEventListener("keydown", (e) => {
-		for (const mode in modeData) {
-			const data = modeData[mode];
+
+		for (const tool in toolData) {
+			const data = toolData[tool];
 			if (data.key === e.key) {
-				ed.mode = mode;
+				ed.tool = tool;
 				return;
 			}
 		}
+
 		switch (e.key) {
 			case "-":
 				scaleDown();
@@ -727,16 +797,21 @@ function start(conf) {
 			case "ArrowRight":
 				nextFrame();
 				break;
-			case "u":
-				undo();
-				break;
-			case "o":
-				redo();
+			case "z":
+				if (e.metaKey) {
+					if (e.shiftKey) {
+						redo();
+					} else {
+						undo();
+					}
+				}
 				break;
 			case "Escape":
 				ed.frames[ed.curFrame].scissorRect = undefined;
+				ed.tmpCanvas.scissorRect = undefined;
 				break;
 		}
+
 	});
 
 	update();
