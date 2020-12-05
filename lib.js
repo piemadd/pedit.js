@@ -7,6 +7,22 @@ const MAX_STATES = 64;
 
 const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAIAAAAAQCAYAAADeWHeIAAAAAXNSR0IArs4c6QAAAQ9JREFUaIHtmFEOwyAIQHHp/a/svmwcEwERq9aXNKkdCApCJsDhcHgv4WkHJiai8ap7FaHi+wqLqi7AyR4UbFLfsYzF1zzpKPucDyqd2RNAs2h8YjlK80kCyMlYkqCH/VwO86d3KZSLEzjpt2L1r5cPo6sW5QcA48vH2YH80YKD5Bm0NL/EzxRgqwylZ5Xh7P787pkAb6c1CSxI7d1yVAt4GmohM5RWDSPbQSTeS+P0LZwK4M+oShDQe956S604APi2gIgeDdSJ8TxJ0kC1nGjN3BYZqV+3HNUCrBvdI1B401Yq/SVGtQNu/kAOFqdXlbFcBEmoJUHPiyDRPcBOCdCbHa6Cd6qgh0ZG/xU9rMQX+XA9JEvVwYsAAAAASUVORK5CYII=");
 
+const font = loadImg("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");
+
+const fontMap = {};
+
+font.onload = () => {
+	const fontChars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+	const cols = font.width / 8;
+	const chars = fontChars.split("");
+	chars.forEach((ch, i) => {
+		fontMap[ch] = [
+			~~(i % cols),
+			~~(i / cols),
+		];
+	});
+};
+
 const toolData = {
 	pen: {
 		cursor: "crosshair",
@@ -69,9 +85,6 @@ function deepCopy(input) {
 function loadImg(code, f) {
 	const img = new Image();
 	img.src = "data:image/png;base64," + code;
-	img.onload = () => {
-		img.loaded = true;
-	};
 	return img;
 }
 
@@ -428,9 +441,21 @@ function redo() {
 	ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
 }
 
+function drawText(ctx, text, x, y, size) {
+	const chars = text.split("");
+	for (const ch of chars) {
+		if (fontMap[ch]) {
+			const [col, row] = fontMap[ch];
+			ctx.drawImage(font, 8 * col, 8 * row, 8, 8, x, y, size, size);
+			x += size;
+		}
+	}
+}
+
 function render() {
 
 	let hovering = false;
+	let tooltip = undefined;
 	const ctx = ed.ctx;
 	const canvas = ed.frames[ed.curFrame];
 	const cw = ed.canvasEl.width;
@@ -490,12 +515,16 @@ function render() {
 
 		for (let i = 0; i < ed.frames.length; i++) {
 
+			const ts = 12;
 			const w = i == ed.curFrame ? 32 : 24;
 			const h = i == ed.curFrame ? 24 : 16;
+			const tx = (w - ts) / 2;
+			const ty = (h - ts) / 2;
 			const c = i == ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
 
 			ctx.fillStyle = colorCSS(c);
 			ctx.fillRect(ox + x, oy, w, -h);
+			drawText(ctx, `${i}`, ox + x + tx, oy - h + ty, ts);
 			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 			ctx.strokeRect(ox + x, oy, w, -h);
 
@@ -552,6 +581,7 @@ function render() {
 
 			if (mouseInRect(x, y, w, h)) {
 				hovering = true;
+				tooltip = `${tool} (${data.key})`;
 				if (ed.mousePressed) {
 					ed.tool = tool;
 				}
@@ -584,6 +614,23 @@ function render() {
 
 		}
 
+	}
+
+	// tooltip
+	if (tooltip) {
+		const padding = 3;
+		const margin = 6;
+		const size = 12;
+		const w = tooltip.length * size + padding * 2;
+		const h = size + padding * 2;
+		const [mx, my] = ed.mousePos;
+		const x = mx - w - margin;
+		const y = my + margin;
+		ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+		ctx.fillRect(x, y, w, h);
+		drawText(ctx, tooltip, x + padding, y + padding, size);
+		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+		ctx.strokeRect(x, y, w, h);
 	}
 
 	const [x, y] = toCanvasPos(ed.mousePos);
@@ -677,6 +724,7 @@ function start(conf) {
 				canvas.bucket(x, y, ed.color);
 				break;
 			}
+			// TODO: don't trigger when it's just selected by mouse
 			case "rect":
 			case "circle":
 			case "line":
