@@ -40,8 +40,10 @@ m-l: load
 	</pre>
 	<script type="module">
 		import pedit from "/pedit.js";
+		const canvas = document.querySelector("#editor");
+		canvas.focus();
 		pedit({
-			canvas: document.querySelector("#editor"),
+			canvas: canvas,
 			width: 64,
 			height: 64,
 		});
