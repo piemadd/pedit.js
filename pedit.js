@@ -1,3 +1,5 @@
+// TODO: make work without any browser stuff
+
 const MIN_SCALE = 2;
 const MAX_SCALE = 64;
 const PADDING = 120;
@@ -5,16 +7,18 @@ const MAX_STATES = 64;
 
 const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAIAAAAAQCAYAAADeWHeIAAAAAXNSR0IArs4c6QAAAQ9JREFUaIHtmFEOwyAIQHHp/a/svmwcEwERq9aXNKkdCApCJsDhcHgv4WkHJiai8ap7FaHi+wqLqi7AyR4UbFLfsYzF1zzpKPucDyqd2RNAs2h8YjlK80kCyMlYkqCH/VwO86d3KZSLEzjpt2L1r5cPo6sW5QcA48vH2YH80YKD5Bm0NL/EzxRgqwylZ5Xh7P787pkAb6c1CSxI7d1yVAt4GmohM5RWDSPbQSTeS+P0LZwK4M+oShDQe956S604APi2gIgeDdSJ8TxJ0kC1nGjN3BYZqV+3HNUCrBvdI1B401Yq/SVGtQNu/kAOFqdXlbFcBEmoJUHPiyDRPcBOCdCbHa6Cd6qgh0ZG/xU9rMQX+XA9JEvVwYsAAAAASUVORK5CYII=");
 const font = loadImg("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");
-
 const fontMap = {};
 
 font.onload = () => {
+
   const fontChars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
   const cols = font.width / 8;
   const chars = fontChars.split("");
+
   chars.forEach((ch, i) => {
     fontMap[ch] = [~~(i % cols), ~~(i / cols)];
   });
+
 };
 
 const toolData = {
@@ -61,6 +65,7 @@ const toolData = {
 };
 
 function deepCopy(input) {
+
   if (typeof input !== "object" || input === null) {
     return input;
   }
@@ -72,6 +77,7 @@ function deepCopy(input) {
   }
 
   return out;
+
 }
 
 function loadImg(code) {
@@ -84,9 +90,9 @@ function clamp(v, a, b) {
   return Math.max(Math.min(v, b), a);
 }
 
-function makeCanvas(width, height) {
+function makeCanvas(width, height, pixels) {
 
-  return {
+  const c = {
 
     width: width,
     height: height,
@@ -94,13 +100,25 @@ function makeCanvas(width, height) {
     blend: "alpha",
     scissorRect: null,
 
+    data() {
+      return {
+        width: this.width,
+        height: this.height,
+        pixels: this.pixels,
+      };
+    },
+
+    clone() {
+      return makeCanvas(this.width, this.height, this.pixels);
+    },
+
     clear() {
       this.pixels = Array(this.width * this.height * 4).fill(0);
     },
 
     load(pixels) {
       if (pixels.length !== this.width * this.height * 4) {
-        throw new Error("not loading the correct canvas bro");
+        throw new Error("bad canvas bro");
       }
       this.pixels = deepCopy(pixels);
     },
@@ -273,13 +291,12 @@ function makeCanvas(width, height) {
     },
 
     merge(other) {
-      if (other.width !== this.width || other.height !== this.height) {
-        return;
-      }
-
       for (let i = 0; i < this.width; i++) {
         for (let j = 0; j < this.height; j++) {
-          this.set(i, j, other.get(i, j));
+          const c = other.get(i, j);
+          if (c) {
+            this.set(i, j, c);
+          }
         }
       }
     },
@@ -287,10 +304,8 @@ function makeCanvas(width, height) {
     checkPt(x, y) {
       if (this.scissorRect) {
         const r = this.scissorRect;
-
         return x >= r[0][0] && x < r[1][0] && y >= r[0][1] && y < r[1][1];
       }
-
       return x >= 0 && x < this.width && y >= 0 && y < this.height;
     },
 
@@ -299,6 +314,7 @@ function makeCanvas(width, height) {
     },
 
     _bucketRec(x, y, target, color) {
+
       if (!this.checkPt(x, y)) {
         return;
       }
@@ -312,6 +328,7 @@ function makeCanvas(width, height) {
       this._bucketRec(x - 1, y, target, color);
       this._bucketRec(x + 1, y, target, color);
       this._bucketRec(x, y + 1, target, color);
+
     },
 
     toImageData() {
@@ -325,7 +342,15 @@ function makeCanvas(width, height) {
     clampPt(pt) {
       return [clamp(pt[0], 0, this.width), clamp(pt[1], 0, this.height)];
     },
+
   };
+
+  if (pixels) {
+    c.load(pixels);
+  }
+
+  return c;
+
 }
 
 function colorEq(c1, c2) {
@@ -371,12 +396,13 @@ function pedit(conf) {
     height: conf.height,
     frames: [makeCanvas(conf.width, conf.height)],
     curFrame: 0,
-    tmpCanvas: makeCanvas(conf.width, conf.height),
+    fCanvas: makeCanvas(conf.width, conf.height),
     mouseDown: false,
     mousePressed: false,
+    mouseMoved: false,
     mousePos: [0, 0],
     mousePosPrev: [0, 0],
-    mouseStartPos: undefined,
+    mouseStartPos: null,
     tool: "pen",
     color: [0, 0, 0, 255],
     colors: conf.colors || [
@@ -444,9 +470,7 @@ function pedit(conf) {
   }
 
   function newFrame() {
-    const canvas = makeCanvas(ed.width, ed.height);
-    canvas.load(ed.frames[ed.curFrame].pixels);
-    ed.frames.splice(ed.curFrame, 0, canvas);
+    ed.frames.splice(ed.curFrame, 0, ed.frames[ed.curFrame].clone());
     ed.curFrame++;
     pushState();
   }
@@ -491,6 +515,7 @@ function pedit(conf) {
   }
 
   function pushState() {
+
     if (ed.states.length >= MAX_STATES) {
       return;
     }
@@ -500,7 +525,18 @@ function pedit(conf) {
       ed.stateOffset = 0;
     }
 
-    ed.states.push(deepCopy(ed.frames));
+    ed.states.push({
+      frames: deepCopy(ed.frames.map(c => c.data())),
+      curFrame: ed.curFrame,
+    });
+
+  }
+
+  function applyState(state) {
+    ed.frames = state.frames.map((f) => {
+      return makeCanvas(f.width, f.height, f.pixels);
+    });
+    ed.curFrame = state.curFrame;
   }
 
   function undo() {
@@ -510,7 +546,8 @@ function pedit(conf) {
     }
 
     ed.stateOffset++;
-    ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
+    applyState(ed.states[ed.states.length - ed.stateOffset - 1]);
+
     if (ed.curFrame >= ed.frames.length) {
       ed.curFrame = ed.frames.length - 1;
     }
@@ -524,13 +561,15 @@ function pedit(conf) {
     }
 
     ed.stateOffset--;
-    ed.frames = deepCopy(ed.states[ed.states.length - ed.stateOffset - 1]);
+    applyState(ed.states[ed.states.length - ed.stateOffset - 1]);
 
   }
 
-  function render() {
+  function frame() {
+
     let hovering = false;
-    let tooltip;
+    let mousePressProcessed = false;
+    let tooltip = null;
     const ctx = ed.ctx;
     const canvas = ed.frames[ed.curFrame];
     const cw = ed.canvasEl.width;
@@ -550,29 +589,26 @@ function pedit(conf) {
     ctx.fillStyle = colorCSS([255, 255, 255, 255]);
     ctx.fillRect(ox, oy, canvas.width * s, canvas.height * s);
 
-    for (let x = 0; x < canvas.width; x++) {
-      for (let y = 0; y < canvas.height; y++) {
-        const c = canvas.get(x, y);
-        if (c[3] !== 0) {
-          ctx.fillStyle = colorCSS(c);
-          ctx.fillRect(x * s + ox, y * s + oy, s, s);
+    function drawCanvas(ca) {
+      for (let x = 0; x < ca.width; x++) {
+        for (let y = 0; y < ca.height; y++) {
+          const c = ca.get(x, y);
+          if (c[3] !== 0) {
+            ctx.fillStyle = colorCSS(c);
+            ctx.fillRect(x * s + ox, y * s + oy, s, s);
+          }
         }
       }
     }
 
-    for (let x = 0; x < ed.tmpCanvas.width; x++) {
-      for (let y = 0; y < ed.tmpCanvas.height; y++) {
-        const c = ed.tmpCanvas.get(x, y);
-        if (c[3] !== 0) {
-          ctx.fillStyle = colorCSS(c);
-          ctx.fillRect(x * s + ox, y * s + oy, s, s);
-        }
-      }
-    }
+    drawCanvas(canvas);
+    drawCanvas(ed.fCanvas);
 
     if (canvas.scissorRect) {
+
       const p1 = canvas.scissorRect[0];
       const p2 = canvas.scissorRect[1];
+
       ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(
@@ -581,7 +617,16 @@ function pedit(conf) {
         (p2[0] - p1[0]) * s,
         (p2[1] - p1[1]) * s,
       );
+      ctx.strokeStyle = colorCSS([255, 255, 255, 255]);
+      ctx.setLineDash([0, 5, 5]);
+      ctx.strokeRect(
+        p1[0] * s + ox,
+        p1[1] * s + oy,
+        (p2[0] - p1[0]) * s,
+        (p2[1] - p1[1]) * s,
+      );
       ctx.setLineDash([]);
+
     }
 
     ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
@@ -589,16 +634,17 @@ function pedit(conf) {
 
     // frame no.
     {
+
       let x = 0;
 
       for (let i = 0; i < ed.frames.length; i++) {
+
         const ts = 12;
         const w = i === ed.curFrame ? 32 : 24;
         const h = i === ed.curFrame ? 24 : 16;
         const tx = (w - ts) / 2;
         const ty = (h - ts) / 2;
-        const c =
-          i === ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
+        const c = i === ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
 
         ctx.fillStyle = colorCSS(c);
         ctx.fillRect(ox + x, oy, w, -h);
@@ -610,15 +656,19 @@ function pedit(conf) {
           hovering = true;
           if (ed.mousePressed) {
             ed.curFrame = i;
+            mousePressProcessed = true;
           }
         }
 
         x += w;
+
       }
+
     }
 
     // cursor
     {
+
       const [x, y] = toCanvasPos(ed.mousePos);
 
       if (canvas.checkPt(x, y)) {
@@ -639,10 +689,12 @@ function pedit(conf) {
             break;
         }
       }
+
     }
 
     // colors
     ed.colors.forEach((c, i) => {
+
       ctx.fillStyle = colorCSS(c);
       ctx.fillRect(0, i * 24, 24, 24);
       ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
@@ -652,8 +704,10 @@ function pedit(conf) {
         hovering = true;
         if (ed.mousePressed) {
           ed.color = ed.colors[i];
+          mousePressProcessed = true;
         }
       }
+
     });
 
     ed.colors.forEach((c, i) => {
@@ -667,20 +721,27 @@ function pedit(conf) {
 
     // tools
     {
+
       let y = 0;
       const w = 32;
       const h = 32;
 
       for (const tool in toolData) {
+
         const data = toolData[tool];
         const x = cw - w;
 
         if (mouseInRect(x, y, w, h)) {
+
           hovering = true;
           tooltip = `${tool} (${data.key})`;
+
+          // TODO: all mouse press events should be processed at the same time
           if (ed.mousePressed) {
             ed.tool = tool;
+            mousePressProcessed = true;
           }
+
         }
 
         ctx.fillStyle = colorCSS([255, 255, 255, 255]);
@@ -690,11 +751,13 @@ function pedit(conf) {
         ctx.strokeRect(x, y, w, h);
 
         y += 32;
+
       }
 
       y = 0;
 
       for (const tool in toolData) {
+
         if (ed.tool === tool) {
           const x = cw - w;
           ctx.lineWidth = 4;
@@ -704,11 +767,14 @@ function pedit(conf) {
         }
 
         y += 32;
+
       }
+
     }
 
     // tooltip
     if (tooltip) {
+
       const padding = 3;
       const margin = 6;
       const size = 12;
@@ -717,11 +783,13 @@ function pedit(conf) {
       const [mx, my] = ed.mousePos;
       const x = mx - w - margin;
       const y = my + margin;
+
       ctx.fillStyle = colorCSS([255, 255, 255, 255]);
       ctx.fillRect(x, y, w, h);
       drawText(ctx, tooltip, x + padding, y + padding, size);
       ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
       ctx.strokeRect(x, y, w, h);
+
     }
 
     if (hovering) {
@@ -730,13 +798,40 @@ function pedit(conf) {
       ed.canvasEl.style.cursor = toolData[ed.tool].cursor;
     }
 
+    if (ed.mousePressed) {
+
+      const [cx, cy] = toCanvasPos(ed.mousePos);
+
+      switch (ed.tool) {
+
+        case "pen": {
+          ed.fCanvas.set(cx, cy, ed.color);
+          break;
+        }
+
+        case "erasor": {
+          canvas.blend = "replace";
+          canvas.set(cx, cy, [0, 0, 0, 0]);
+          canvas.blend = "alpha";
+          break;
+        }
+
+        case "bucket": {
+          canvas.bucket(cx, cy, ed.color);
+          break;
+        }
+
+      }
+
+    }
+
     ed.mousePressed = false;
+
+    window.requestAnimationFrame(frame);
+
   }
 
-  function update() {
-    render();
-    window.requestAnimationFrame(update);
-  }
+  frame();
 
   const events = {
 
@@ -755,41 +850,63 @@ function pedit(conf) {
     },
 
     mousedown: (e) => {
-
-      ed.mouseDown = true;
       ed.mousePressed = true;
-      ed.mousePosPrev = [ed.mousePos, ed.mousePos];
+      ed.mouseDown = true;
+      ed.mousePosPrev = [...ed.mousePos];
       ed.mousePos = [e.offsetX, e.offsetY];
+      ed.mouseStartPos = [...ed.mousePos];
+    },
 
-      const [x, y] = toCanvasPos(ed.mousePos);
+    mousemove: (e) => {
+
+      ed.mousePosPrev = [...ed.mousePos];
+      ed.mousePos = [e.offsetX, e.offsetY];
+      ed.mouseMoved = true;
+
+      if (!ed.mouseDown) {
+        return;
+      }
+
       const canvas = ed.frames[ed.curFrame];
+      const [pcx, pcy] = toCanvasPos(ed.mousePosPrev);
+      const [cx, cy] = toCanvasPos(ed.mousePos);
+      const [scx, scy] = toCanvasPos(ed.mouseStartPos);
 
       switch (ed.tool) {
-        case "pen": {
-          canvas.set(x, y, ed.color);
+        case "pen":
+          ed.fCanvas.line(pcx, pcy, cx, cy, ed.color);
           break;
-        }
-
-        case "erasor": {
+        case "erasor":
           canvas.blend = "replace";
-          canvas.set(x, y, [0, 0, 0, 0]);
+          canvas.line(pcx, pcy, cx, cy, [0, 0, 0, 0]);
           canvas.blend = "alpha";
           break;
-        }
-
-        case "bucket": {
-          canvas.bucket(x, y, ed.color);
-          break;
-        }
-
-        // TODO: don't trigger when it's just selected by mouse
         case "rect":
-        case "circle":
-        case "line":
-        case "select":
-          ed.mouseStartPos = [...ed.mousePos];
+          ed.fCanvas.clear();
+          ed.fCanvas.fillRect(scx, scy, cx - scx, cy - scy, ed.color);
           break;
+        case "line":
+          ed.fCanvas.clear();
+          ed.fCanvas.line(scx, scy, cx, cy, ed.color);
+          break;
+        case "circle":
+          ed.fCanvas.clear();
+          ed.fCanvas.fillCircle(scx, scy, Math.max(cx - scx, cy - scy), ed.color);
+          break;
+        case "select": {
+          const [dcx, dcy] = canvas.clampPt([cx, cy]);
+          canvas.scissorRect = [
+            [scx, scy],
+            [dcx, dcy],
+          ];
+          ed.fCanvas.scissorRect = [
+            [scx, scy],
+            [dcx, dcy],
+          ];
+          break;
+        }
       }
+
     },
 
     mouseup: (e) => {
@@ -797,76 +914,23 @@ function pedit(conf) {
       ed.mouseDown = false;
       ed.mousePosPrev = [ed.mousePos, ed.mousePos];
       ed.mousePos = [e.offsetX, e.offsetY];
-      ed.mouseStartPos = undefined;
+      ed.mouseStartPos = null;
       const canvas = ed.frames[ed.curFrame];
 
       switch (ed.tool) {
+        case "pen":
+        case "erasor":
+        case "bucket":
         case "rect":
         case "line":
         case "circle":
-          canvas.merge(ed.tmpCanvas);
-          ed.tmpCanvas.clear();
+          canvas.merge(ed.fCanvas);
+          ed.fCanvas.clear();
+          pushState();
           break;
       }
 
       // TODO: should only push on change
-      pushState();
-
-    },
-
-    mousemove: (e) => {
-
-      ed.mousePosPrev = [...ed.mousePos];
-      ed.mousePos = [e.offsetX, e.offsetY];
-
-      const [px, py] = toCanvasPos(ed.mousePosPrev);
-      const [x, y] = toCanvasPos(ed.mousePos);
-      const canvas = ed.frames[ed.curFrame];
-
-      if (!ed.mouseDown) {
-        return;
-      }
-
-      let [sx, sy] = [0, 0];
-
-      if (ed.mouseStartPos) {
-        [sx, sy] = toCanvasPos(ed.mouseStartPos);
-      }
-
-      switch (ed.tool) {
-        case "pen":
-          canvas.line(px, py, x, y, ed.color);
-          break;
-        case "erasor":
-          canvas.blend = "replace";
-          canvas.line(px, py, x, y, [0, 0, 0, 0]);
-          canvas.blend = "alpha";
-          break;
-        case "rect":
-          ed.tmpCanvas.clear();
-          ed.tmpCanvas.fillRect(sx, sy, x - sx, y - sy, ed.color);
-          break;
-        case "line":
-          ed.tmpCanvas.clear();
-          ed.tmpCanvas.line(sx, sy, x, y, ed.color);
-          break;
-        case "circle":
-          ed.tmpCanvas.clear();
-          ed.tmpCanvas.fillCircle(sx, sy, Math.max(x - sx, y - sy), ed.color);
-          break;
-        case "select": {
-          const [dx, dy] = canvas.clampPt([x, y]);
-          canvas.scissorRect = [
-            [sx, sy],
-            [dx, dy],
-          ];
-          ed.tmpCanvas.scissorRect = [
-            [sx, sy],
-            [dx, dy],
-          ];
-          break;
-        }
-      }
 
     },
 
@@ -883,7 +947,7 @@ function pedit(conf) {
         }
       }
 
-      const curCanvas = ed.frames[ed.curFrame];
+      const canvas = ed.frames[ed.curFrame];
 
       switch (e.key) {
         case "-":
@@ -937,56 +1001,61 @@ function pedit(conf) {
           }
           break;
         case "Backspace":
-          if (curCanvas.scissorRect) {
-            const [p1, p2] = curCanvas.scissorRect;
-            curCanvas.scissorRect = null;
-            ed.tmpCanvas.scissorRect = null;
-            curCanvas.blend = "replace";
-            curCanvas.fillRect(p1[0], p1[1], p2[0] - p1[0], p2[1] - p1[1], [0, 0, 0, 0]);
-            curCanvas.blend = "alpha";
+          if (canvas.scissorRect) {
+            const [p1, p2] = canvas.scissorRect;
+            canvas.scissorRect = null;
+            ed.fCanvas.scissorRect = null;
+            canvas.blend = "replace";
+            canvas.fillRect(p1[0], p1[1], p2[0] - p1[0], p2[1] - p1[1], [0, 0, 0, 0]);
+            canvas.blend = "alpha";
           }
           break;
         case "Escape":
-          curCanvas.scissorRect = null;
-          ed.tmpCanvas.scissorRect = null;
+          canvas.scissorRect = null;
+          ed.fCanvas.scissorRect = null;
           break;
       }
+
     },
+
   };
+
   for (const e in events) {
     ed.canvasEl.addEventListener(e, events[e]);
   }
 
-  update();
-
   const doc = {
-    frames() {
-      return ed.frames;
+
+    data() {
+      return ed.frames.map((f) => f.data());
     },
+
     load(frames) {
+
       if (!frames || frames.length <= 0) {
         return;
       }
 
-      ed.frames = [];
-      frames.forEach((f) => {
-        const c = makeCanvas(f.width, f.height);
-        c.pixels = f.pixels;
-        ed.frames.push(c);
+      ed.frames = frames.map((f) => {
+        return makeCanvas(f.width, f.height, f.pixels);
       });
+
     },
-    removeEventListeners() {
+
+    destroy() {
       for (const e in events) {
         ed.canvasEl.removeEventListener(e, events[e]);
       }
     },
+
   };
 
-  if (conf.loadData) {
-    doc.load(conf.loadData);
+  if (conf.data) {
+    doc.load(conf.data);
   }
 
   return doc;
+
 }
 
 export default pedit;
