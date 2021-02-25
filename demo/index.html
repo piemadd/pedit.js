@@ -15,7 +15,7 @@
 
 <body>
 
-	<canvas id="editor" width=480 height=480></canvas>
+	<canvas tabindex=0 id="editor" width=480 height=480></canvas>
 	<pre>
 p: pen
 e: erasor
@@ -35,12 +35,14 @@ m: move
 _: del frame
 m-z: undo
 ms-z: redo
+m-s: save
+m-l: load
 	</pre>
-	<script src="../lib.js"></script>
-	<script>
-		pedit.start({
+	<script type="module">
+		import pedit from "/pedit.js";
+		pedit({
 			canvas: document.querySelector("#editor"),
-			width: 24,
+			width: 64,
 			height: 64,
 		});
 		</script>
