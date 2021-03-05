@@ -9,6 +9,7 @@
 // TODO: stroke rect
 // TODO: stroke circle
 // TODO: eyedropper
+// TODO: grab tool
 // TODO: bucket selection
 // TODO: cleaner action management
 
@@ -17,7 +18,7 @@ const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAJAAAAAQCAYAAAD59vZgAAAAAXNSR0IArs4c6QAAASlJREFUaIHtme0OwyAIRXHZ+7+y+9XFWEEQ8CucpEmtKFRvoHMAQRAEq0irA9iYXLVPXasMjrGfsCiuC4D4g4ZP7Hlto4m1FC3mvxeDdoyI3QUkWYA6Y/RozccRQM9GIyIL/6Vdjfl+fwXOJQFox4+ijc8qhtlZE4sDwDkWTEAWUCmYQ23vvSnc+TkCGRUR1z+FRYZkJ4BPZ6JgnEdEM+H6w+wy4AJLRf8fzwykgXrB1aVBwsxylpH7Vvt5loh2i1dZ3FVANzFLRGXGo4SB/ZrExpe8+j1LWK4uCdgLeG4Ct+SMfttw59bYcOOi1heLNRf9xyARoESkVIm09CMd6+Hf9TvsKDV1sMpymoNEDlQGszxInHIOdJOArLnhrwz3k+jgfmYfJQQBnx/K5FUQrb3CFgAAAABJRU5ErkJggg==");
+const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAMAAAAAQCAYAAABA4nAoAAAAAXNSR0IArs4c6QAAAXpJREFUaIHtmlEOwyAIQO2y+1/ZfTVzVBAQKXa8ZEm1KhRBsWspSZIkyX9y3K1AYCoo72qrWvbVPSlXR/SQ15OJ1cM2FrIp+RIZmj4WeMtTE31laA050lVq9N54nNVy1GZmxbWQ37aDRJ9vd95IPeZMXAPO9tcyq5+VDhHSjlO+py4cu0rmyEpvdCwsACyAAqVOB9uvnkju+BwH1wYBVz6FxQ6lXcCsdukVC1T3uVcGwL9zx04gcTAsBSzlq3vLAe5rxufq1rvmyMX6tfU/Y0QNAPYDBMczCCjHwQ7VB1Hu4ZFWUYGmPSOhgfuSapeI6a2mq+S010dTB8uw/VkevTE670c5y02PuTIAKvhJwAyw0vBcR9Xm9tyxZ9pw9aLsi+layzWIpEj6Ws41OhaWAs0Kt1AeTsROqU8Pr3Ro9qDKbTNiFMyafF7ykoLVZ3enarHaZaj8k+rHhQoCauKkjpD/AzBIg+A84VOIaDvobi8xkgewzWcJSZI48wEj/mYgkYxC6QAAAABJRU5ErkJggg==");
 const font = loadImg("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");
 const fontMap = {};
 
@@ -36,17 +37,17 @@ font.onload = () => {
 const toolData = {
 	pen: {
 		cursor: "crosshair",
-		key: "p",
+		key: "q",
 		icon: 0,
 	},
 	erasor: {
 		cursor: "crosshair",
-		key: "e",
+		key: "w",
 		icon: 1,
 	},
 	bucket: {
 		cursor: "crosshair",
-		key: "b",
+		key: "e",
 		icon: 2,
 	},
 	rect: {
@@ -56,27 +57,27 @@ const toolData = {
 	},
 	circle: {
 		cursor: "crosshair",
-		key: "c",
+		key: "t",
 		icon: 4,
 	},
 	line: {
 		cursor: "crosshair",
-		key: "l",
+		key: "y",
 		icon: 5,
 	},
 	select: {
 		cursor: "cell",
-		key: "s",
+		key: "u",
 		icon: 6,
 	},
 	move: {
 		cursor: "move",
-		key: "m",
+		key: "i",
 		icon: 7,
 	},
 	eyedropper: {
 		cursor: "crosshair",
-		key: "j",
+		key: "o",
 		icon: 8,
 	},
 };
@@ -109,7 +110,7 @@ function clamp(v, a, b) {
 
 function makeCanvas(width, height, pixels) {
 
-	const c = {
+	const canvas = {
 
 		width: width,
 		height: height,
@@ -352,6 +353,83 @@ function makeCanvas(width, height, pixels) {
 			return [clamp(pt[0], 0, this.width), clamp(pt[1], 0, this.height)];
 		},
 
+		// TODO: smarter
+		// get the bounding box of content
+		bbox() {
+
+			let p1 = [0, 0];
+			let p2 = [this.width - 1, this.height - 1];
+
+			loopX:
+			for (let x = p1[0]; x <= p2[0]; x++) {
+				loopY:
+				for (let y = p1[1]; y <= p2[1]; y++) {
+					const i = this._getIndex(x, y);
+					if (this.pixels[i + 3] !== 0) {
+						p1[0] = x;
+						break loopX;
+					}
+				}
+			}
+
+			loopX:
+			for (let x = p2[0]; x >= p1[0]; x--) {
+				loopY:
+				for (let y = p1[1]; y <= p2[1]; y++) {
+					const i = this._getIndex(x, y);
+					if (this.pixels[i + 3] !== 0) {
+						p2[0] = x;
+						break loopX;
+					}
+				}
+			}
+
+			loopY:
+			for (let y = p1[1]; y <= p2[1]; y++) {
+				loopX:
+				for (let x = p1[0]; x <= p2[0]; x++) {
+					const i = this._getIndex(x, y);
+					if (this.pixels[i + 3] !== 0) {
+						p1[1] = y;
+						break loopY;
+					}
+				}
+			}
+
+			loopY:
+			for (let y = p2[1]; y >= p1[1]; y--) {
+				loopX:
+				for (let x = p1[0]; x <= p2[0]; x++) {
+					const i = this._getIndex(x, y);
+					if (this.pixels[i + 3] !== 0) {
+						p2[1] = y;
+						break loopY;
+					}
+				}
+			}
+
+			return [ p1, p2 ];
+
+		},
+
+		crop(p1, p2) {
+
+			const w = p2[0] - p1[0] + 1;
+			const h = p2[1] - p1[1] + 1;
+			const newCanvas = makeCanvas(w, h);
+
+			for (let x = p1[0]; x <= p2[0]; x++) {
+				for (let y = p1[1]; y <= p2[1]; y++) {
+					newCanvas.set(x - p1[0], y - p1[1], this.get(x, y));
+				}
+			}
+
+			this.width = w;
+			this.height = h;
+			this.pixels = newCanvas.pixels;
+
+		},
+
 		toImageData() {
 			return new window.ImageData(
 				new Uint8ClampedArray(this.pixels),
@@ -366,7 +444,7 @@ function makeCanvas(width, height, pixels) {
 			pCanvas.width = this.width;
 			pCanvas.height = this.height;
 			const imgData = this.toImageData();
-			const ctx = pCanvas.getContext('2d');
+			const ctx = pCanvas.getContext("2d");
 			ctx.putImageData(imgData, 0, 0);
 
 			return pCanvas.toDataURL();
@@ -376,10 +454,10 @@ function makeCanvas(width, height, pixels) {
 	};
 
 	if (pixels) {
-		c.load(pixels);
+		canvas.load(pixels);
 	}
 
-	return c;
+	return canvas;
 
 }
 
@@ -418,10 +496,11 @@ function pedit(conf) {
 		}
 	}
 
-	const ed = {
+	const canvasEl = conf.canvas;
+	const ctx = conf.canvas.getContext("2d");
 
-		canvasEl: conf.canvas,
-		ctx: conf.canvas.getContext("2d"),
+	// serializable editor state
+	const ed = {
 
 		width: conf.width,
 		height: conf.height,
@@ -435,88 +514,139 @@ function pedit(conf) {
 		// tmp buffer
 		fCanvas: makeCanvas(conf.width, conf.height),
 
-		// input trackers
+		tool: "pen",
+		color: [0, 0, 0, 255],
+		palette: conf.palette || [
+			[0, 0, 0, 255],
+			[255, 255, 255, 255],
+			[255, 255, 128, 255],
+			[255, 128, 255, 255],
+			[0, 128, 128, 255],
+			[128, 0, 255, 255],
+			[255, 0, 128, 255],
+			[0, 255, 255, 255],
+		],
+
+		// viewport state
+		view: {
+			offset: [0, 0],
+			scale: 1,
+		},
+
+		// undo / redo states
+		// TODO: use linked list?
+		state: {
+			stack: [],
+			offset: 0,
+		},
+
+		modified: false,
+
+		events: {},
+
+	};
+
+	// discardable session state
+	const session = {
 		mouseDown: false,
 		mousePressed: false,
 		mouseMoved: false,
 		mousePos: [0, 0],
 		mousePosPrev: [0, 0],
 		mouseStartPos: null,
-
-		// tool
-		tool: "pen",
-
-		color: [0, 0, 0, 255],
-		colors: conf.colors || [
-			[0, 0, 0, 255],
-			[255, 255, 255, 255],
-			[255, 255, 128, 255],
-			[0, 128, 128, 255],
-			[128, 0, 255, 255],
-			[255, 0, 128, 255],
-			[0, 255, 255, 255],
-			[255, 0, 255, 255],
-			//		 [88, 0, 215, 255],
-		],
-
-		// viewport state
-		offset: [0, 0],
-		scale: 1,
-
-		// undo / redo states
-		states: [],
-		stateOffset: 0,
-
-		modified: false,
-
-		events: {
-			change: [],
-		},
-
+		grabbin: false,
 	};
 
 	scaleFit();
-	ed.ctx.imageSmoothingEnabled = false;
+	ctx.imageSmoothingEnabled = false;
+
+	const actions = {
+		crop: {
+			icon: 9,
+			action: crop,
+		},
+// 		redo: {
+// 			icon: 11,
+// 			key: "meta+shift+z",
+// 			action: redo,
+// 		},
+// 		undo: {
+// 			icon: 10,
+// 			key: "shift+z",
+// 			action: undo,
+// 		},
+	};
+
+	function crop() {
+
+		let p1;
+		let p2;
+
+		// find the biggest bbox of all frames
+		ed.frames.forEach(c => {
+			const [ pp1, pp2 ] = c.bbox();
+			if (p1 && p2) {
+				p1[0] = Math.min(p1[0], pp1[0]);
+				p1[1] = Math.min(p1[1], pp1[0]);
+				p2[0] = Math.max(p2[0], pp2[0]);
+				p2[1] = Math.max(p2[1], pp2[0]);
+			} else {
+				p1 = pp1;
+				p2 = pp2;
+			}
+		});
+
+		ed.frames.forEach(c => c.crop(p1, p2));
+		ed.width = ed.frames[ed.curFrame].width;
+		ed.height = ed.frames[ed.curFrame].height;
+		pushState();
+
+	}
 
 	function toCanvasPos(pt) {
-		const x = ~~((pt[0] - ed.offset[0]) / ed.scale);
-		const y = ~~((pt[1] - ed.offset[1]) / ed.scale);
-
+		const x = ~~((pt[0] - ed.view.offset[0]) / ed.view.scale);
+		const y = ~~((pt[1] - ed.view.offset[1]) / ed.view.scale);
 		return [x, y];
 	}
 
+	// TODO: scale according to cursor instead of center
 	function scaleDown() {
-		if (ed.scale <= MIN_SCALE) {
+
+		if (ed.view.scale <= MIN_SCALE) {
 			return;
 		}
 
-		ed.scale--;
-		ed.offset[0] += ed.width / 2;
-		ed.offset[1] += ed.height / 2;
+		ed.view.scale--;
+		ed.view.offset[0] += ed.width / 2;
+		ed.view.offset[1] += ed.height / 2;
+
 	}
 
 	function scaleUp() {
-		if (ed.scale >= MAX_SCALE) {
+
+		if (ed.view.scale >= MAX_SCALE) {
 			return;
 		}
 
-		ed.scale++;
-		ed.offset[0] -= ed.width / 2;
-		ed.offset[1] -= ed.height / 2;
+		ed.view.scale++;
+		ed.view.offset[0] -= ed.width / 2;
+		ed.view.offset[1] -= ed.height / 2;
+
 	}
 
+	// scale viewport to the fittest
 	function scaleFit() {
 
-		const cw = ed.canvasEl.width;
-		const ch = ed.canvasEl.height;
+		const cw = canvasEl.width;
+		const ch = canvasEl.height;
 		const sw = (cw - PADDING) / ed.width;
 		const sh = (ch - PADDING) / ed.height;
 
-		ed.scale = ~~Math.min(sw, sh);
+		ed.view.scale = ~~Math.min(sw, sh);
 
-		ed.offset = [
-			(cw - ed.width * ed.scale) / 2,
-			(ch - ed.height * ed.scale) / 2,
+		ed.view.offset = [
+			(cw - ed.width * ed.view.scale) / 2,
+			(ch - ed.height * ed.view.scale) / 2,
 		];
 
 	}
@@ -560,7 +690,7 @@ function pedit(conf) {
 			h = -h;
 		}
 
-		const [mx, my] = ed.mousePos;
+		const [mx, my] = session.mousePos;
 
 		return mx >= x && mx <= x + w && my >= y && my <= y + h;
 
@@ -579,6 +709,9 @@ function pedit(conf) {
 	}
 
 	function trigger(ev, ...args) {
+		if (!ed.events[ev]) {
+			return;
+		}
 		for (const f of ed.events[ev]) {
 			f(...args);
 		}
@@ -586,16 +719,16 @@ function pedit(conf) {
 
 	function pushState() {
 
-		if (ed.states.length >= MAX_STATES) {
+		if (ed.state.stack.length >= MAX_STATES) {
 			return;
 		}
 
-		if (ed.stateOffset > 0) {
-			ed.states.splice(ed.states.length - ed.stateOffset, ed.stateOffset);
-			ed.stateOffset = 0;
+		if (ed.state.offset > 0) {
+			ed.state.stack.splice(ed.state.stack.length - ed.state.offset, ed.state.offset);
+			ed.state.offset = 0;
 		}
 
-		ed.states.push({
+		ed.state.stack.push({
 			frames: deepCopy(frameData()),
 			curFrame: ed.curFrame,
 		});
@@ -614,12 +747,12 @@ function pedit(conf) {
 
 	function undo() {
 
-		if (ed.stateOffset >= ed.states.length - 1) {
+		if (ed.state.offset >= ed.state.stack.length - 1) {
 			return;
 		}
 
-		ed.stateOffset++;
-		applyState(ed.states[ed.states.length - ed.stateOffset - 1]);
+		ed.state.offset++;
+		applyState(ed.state.stack[ed.state.stack.length - ed.state.offset - 1]);
 
 		if (ed.curFrame >= ed.frames.length) {
 			ed.curFrame = ed.frames.length - 1;
@@ -629,12 +762,12 @@ function pedit(conf) {
 
 	function redo() {
 
-		if (ed.stateOffset === 0) {
+		if (ed.state.offset === 0) {
 			return;
 		}
 
-		ed.stateOffset--;
-		applyState(ed.states[ed.states.length - ed.stateOffset - 1]);
+		ed.state.offset--;
+		applyState(ed.state.stack[ed.state.stack.length - ed.state.offset - 1]);
 
 	}
 
@@ -648,13 +781,12 @@ function pedit(conf) {
 		let hovering = false;
 		let mousePressProcessed = false;
 		let tooltip = null;
-		const ctx = ed.ctx;
 		const canvas = ed.frames[ed.curFrame];
-		const cw = ed.canvasEl.width;
-		const ch = ed.canvasEl.height;
-		const s = ed.scale;
-		const ox = ed.offset[0];
-		const oy = ed.offset[1];
+		const cw = canvasEl.width;
+		const ch = canvasEl.height;
+		const s = ed.view.scale;
+		const ox = ed.view.offset[0];
+		const oy = ed.view.offset[1];
 
 		ctx.lineWidth = 2;
 
@@ -683,9 +815,9 @@ function pedit(conf) {
 
 		// TODO: wrong
 		if (ed.tool === "move") {
-			if (ed.mouseStartPos) {
-				const [cx, cy] = toCanvasPos(ed.mousePos);
-				const [scx, scy] = toCanvasPos(ed.mouseStartPos);
+			if (session.mouseStartPos) {
+				const [cx, cy] = toCanvasPos(session.mousePos);
+				const [scx, scy] = toCanvasPos(session.mouseStartPos);
 				const [dcx, dcy] = [ cx - scx, cy - scy ];
 				drawCanvas(ed.fCanvas, dcx, dcy);
 			}
@@ -746,7 +878,7 @@ function pedit(conf) {
 
 				if (mouseInRect(ox + x, oy, w, -h)) {
 					hovering = true;
-					if (ed.mousePressed && !mousePressProcessed) {
+					if (session.mousePressed && !mousePressProcessed) {
 						ed.curFrame = i;
 						mousePressProcessed = true;
 					}
@@ -761,7 +893,7 @@ function pedit(conf) {
 		// cursor
 		{
 
-			const [x, y] = toCanvasPos(ed.mousePos);
+			const [x, y] = toCanvasPos(session.mousePos);
 
 			if (canvas.checkPt(x, y)) {
 				switch (ed.tool) {
@@ -785,7 +917,7 @@ function pedit(conf) {
 		}
 
 		// colors
-		ed.colors.forEach((c, i) => {
+		ed.palette.forEach((c, i) => {
 
 			ctx.fillStyle = colorCSS(c);
 			ctx.fillRect(0, i * 24, 24, 24);
@@ -794,15 +926,15 @@ function pedit(conf) {
 
 			if (mouseInRect(0, i * 24, 24, 24)) {
 				hovering = true;
-				if (ed.mousePressed && !mousePressProcessed) {
-					ed.color = ed.colors[i];
+				if (session.mousePressed && !mousePressProcessed) {
+					ed.color = ed.palette[i];
 					mousePressProcessed = true;
 				}
 			}
 
 		});
 
-		ed.colors.forEach((c, i) => {
+		ed.palette.forEach((c, i) => {
 			if (colorEq(c, ed.color)) {
 				ctx.lineWidth = 4;
 				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
@@ -814,22 +946,22 @@ function pedit(conf) {
 		// tools
 		{
 
-			let y = 0;
 			const w = 32;
 			const h = 32;
+			const x = cw - w;
+			let y = 0;
 
+			// draw tool list
 			for (const tool in toolData) {
 
 				const data = toolData[tool];
-				const x = cw - w;
 
 				if (mouseInRect(x, y, w, h)) {
 
 					hovering = true;
 					tooltip = `${tool} (${data.key})`;
 
-					// TODO: all mouse press events should be processed at the same time
-					if (ed.mousePressed && !mousePressProcessed) {
+					if (session.mousePressed && !mousePressProcessed) {
 						ed.tool = tool;
 						mousePressProcessed = true;
 					}
@@ -842,10 +974,11 @@ function pedit(conf) {
 				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
 				ctx.strokeRect(x, y, w, h);
 
-				y += 32;
+				y += h;
 
 			}
 
+			// highlight current tool
 			y = 0;
 
 			for (const tool in toolData) {
@@ -858,7 +991,53 @@ function pedit(conf) {
 					ctx.lineWidth = 2;
 				}
 
-				y += 32;
+				y += h;
+
+			}
+
+		}
+
+		// action
+		{
+
+			const w = 32;
+			const h = 32;
+			let x = cw - w;
+			const y = ch - h;
+
+			// draw action list
+			for (const name in actions) {
+
+				let curHovering = false;
+				const action = actions[name];
+
+				if (mouseInRect(x, y, w, h)) {
+
+					hovering = true;
+					curHovering = true;
+					tooltip = `${name}`;
+
+					if (session.mousePressed && !mousePressProcessed) {
+						action.action();
+						mousePressProcessed = true;
+					}
+
+				}
+
+				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+
+				if (session.mouseDown && curHovering) {
+					ctx.fillStyle = colorCSS([128, 128, 128, 255]);
+				} else {
+					ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+				}
+
+				ctx.fillRect(x, y, w, h);
+				ctx.drawImage(icons, 16 * action.icon, 0, 16, 16, x, y, w, h);
+				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+				ctx.strokeRect(x, y, w, h);
+
+				x -= w;
 
 			}
 
@@ -872,7 +1051,7 @@ function pedit(conf) {
 			const size = 12;
 			const w = tooltip.length * size + padding * 2;
 			const h = size + padding * 2;
-			const [mx, my] = ed.mousePos;
+			const [mx, my] = session.mousePos;
 			const x = mx - w - margin;
 			const y = my + margin;
 
@@ -885,14 +1064,16 @@ function pedit(conf) {
 		}
 
 		if (hovering) {
-			ed.canvasEl.style.cursor = "pointer";
+			canvasEl.style.cursor = "pointer";
+		} else if (session.grabbin) {
+			canvasEl.style.cursor = "grab";
 		} else {
-			ed.canvasEl.style.cursor = toolData[ed.tool].cursor;
+			canvasEl.style.cursor = toolData[ed.tool].cursor;
 		}
 
-		if (ed.mousePressed && !mousePressProcessed) {
+		if (session.mousePressed && !mousePressProcessed) {
 
-			const [cx, cy] = toCanvasPos(ed.mousePos);
+			const [cx, cy] = toCanvasPos(session.mousePos);
 
 			switch (ed.tool) {
 
@@ -914,8 +1095,8 @@ function pedit(conf) {
 				}
 
 				case "move": {
-					// TODO: wrong
 					if (canvas.scissorRect) {
+						// TODO: only copy the parts inside
 						ed.fCanvas.scissorRect = canvas.scissorRect;
 						ed.fCanvas.merge(canvas);
 						ed.fCanvas.scissorRect = null;
@@ -924,11 +1105,17 @@ function pedit(conf) {
 					break;
 				}
 
+				case "eyedropper": {
+					// TODO: jump back to prev tool
+					ed.color = canvas.get(cx, cy);
+					break;
+				}
+
 			}
 
 		}
 
-		ed.mousePressed = false;
+		session.mousePressed = false;
 
 		window.requestAnimationFrame(frame);
 
@@ -947,33 +1134,38 @@ function pedit(conf) {
 					scaleDown();
 				}
 			} else {
-				ed.offset[0] -= e.deltaX;
-				ed.offset[1] -= e.deltaY;
+				ed.view.offset[0] -= e.deltaX;
+				ed.view.offset[1] -= e.deltaY;
 			}
 		},
 
 		mousedown: (e) => {
-			ed.mousePressed = true;
-			ed.mouseDown = true;
-			ed.mousePosPrev = [...ed.mousePos];
-			ed.mousePos = [e.offsetX, e.offsetY];
-			ed.mouseStartPos = [...ed.mousePos];
+			session.mousePressed = true;
+			session.mouseDown = true;
+			session.mousePosPrev = [...session.mousePos];
+			session.mousePos = [e.offsetX, e.offsetY];
+			session.mouseStartPos = [...session.mousePos];
 		},
 
 		mousemove: (e) => {
 
-			ed.mousePosPrev = [...ed.mousePos];
-			ed.mousePos = [e.offsetX, e.offsetY];
-			ed.mouseMoved = true;
+			session.mousePosPrev = [...session.mousePos];
+			session.mousePos = [e.offsetX, e.offsetY];
+			session.mouseMoved = true;
 
-			if (!ed.mouseDown) {
+			if (session.grabbin) {
+				ed.view.offset[0] += e.movementX;
+				ed.view.offset[1] += e.movementY;
+			}
+
+			if (!session.mouseDown) {
 				return;
 			}
 
 			const canvas = ed.frames[ed.curFrame];
-			const [pcx, pcy] = toCanvasPos(ed.mousePosPrev);
-			const [cx, cy] = toCanvasPos(ed.mousePos);
-			const [scx, scy] = toCanvasPos(ed.mouseStartPos);
+			const [cx, cy] = toCanvasPos(session.mousePos);
+			const [pcx, pcy] = toCanvasPos(session.mousePosPrev);
+			const [scx, scy] = toCanvasPos(session.mouseStartPos);
 
 			switch (ed.tool) {
 				case "pen":
@@ -1011,26 +1203,26 @@ function pedit(conf) {
 
 		mouseup: (e) => {
 
-			ed.mouseDown = false;
-			ed.mousePosPrev = [ed.mousePos, ed.mousePos];
-			ed.mousePos = [e.offsetX, e.offsetY];
+			session.mouseDown = false;
+			session.mousePosPrev = [session.mousePos, session.mousePos];
+			session.mousePos = [e.offsetX, e.offsetY];
 
-			const [cx, cy] = toCanvasPos(ed.mousePos);
-			const [scx, scy] = toCanvasPos(ed.mouseStartPos);
-
-			ed.mouseStartPos = null;
 			const canvas = ed.frames[ed.curFrame];
+			const [cx, cy] = toCanvasPos(session.mousePos);
+			const [scx, scy] = toCanvasPos(session.mouseStartPos);
 
-			// only pushState() if actually changed
+			session.mouseStartPos = null;
+
+			// TODO: only pushState() if actually changed
 			switch (ed.tool) {
 				case "pen":
 				case "erasor":
+				case "bucket":
 					pushState();
 					break;
-				case "bucket":
 				case "rect":
-				case "line":
 				case "circle":
+				case "line":
 					canvas.merge(ed.fCanvas);
 					ed.fCanvas.clear();
 					pushState();
@@ -1055,12 +1247,13 @@ function pedit(conf) {
 
 		keydown: (e) => {
 
+			trigger("key", e);
+
 			if (!e.metaKey) {
 				for (const tool in toolData) {
 					const data = toolData[tool];
 					if (data.key === e.key) {
 						ed.tool = tool;
-
 						return;
 					}
 				}
@@ -1083,7 +1276,8 @@ function pedit(conf) {
 				case "6":
 				case "7":
 				case "8":
-					ed.color = ed.colors[parseInt(e.key, 10) - 1] || ed.color;
+				case "9":
+					ed.color = ed.palette[parseInt(e.key, 10) - 1] || ed.color;
 					break;
 				case "0":
 					scaleFit();
@@ -1112,12 +1306,17 @@ function pedit(conf) {
 					break;
 				case "z":
 					if (e.metaKey) {
+						e.preventDefault();
 						if (e.shiftKey) {
 							redo();
 						} else {
 							undo();
 						}
 					}
+					break;
+				case " ":
+					session.grabbin = true;
+					e.preventDefault();
 					break;
 				case "Backspace":
 					if (canvas.scissorRect) {
@@ -1128,17 +1327,27 @@ function pedit(conf) {
 				case "Escape":
 					canvas.scissorRect = null;
 					break;
+				case "j":
+					break;
 			}
 
+		},
+
+		keyup: (e) => {
+			switch (e.key) {
+				case " ":
+					session.grabbin = false;
+					break;
+			}
 		},
 
 	};
 
 	for (const e in events) {
-		ed.canvasEl.addEventListener(e, events[e]);
+		canvasEl.addEventListener(e, events[e]);
 	}
 
-	const doc = {
+	const handle = {
 
 		frames() {
 			return ed.frames;
@@ -1167,31 +1376,46 @@ function pedit(conf) {
 			ed.events[ev].push(f);
 		},
 
+		setTool(tool) {
+			if (!toolData[tool]) {
+				throw new Error(`no tool called ${tool} bro`);;
+			}
+			ed.tool = tool;
+		},
+
+		setColor(color) {
+			ed.color = color;
+		},
+
+		setPalette(palette) {
+			ed.palette = palette;
+		},
+
 		cleanUp() {
 			for (const e in events) {
-				ed.canvasEl.removeEventListener(e, events[e]);
+				canvasEl.removeEventListener(e, events[e]);
 			}
 		},
 
 	};
 
 	if (conf.data) {
-		doc.load(conf.data);
+		handle.load(conf.data);
 	}
 
 	if (conf.onChange) {
-		doc.on("change", conf.onChange);
+		handle.on("change", conf.onChange);
 	}
 
 	// init state list (don't want to trigger "change" so no pushState())
-	ed.states = [
+	ed.state.stack = [
 		{
 			frames: deepCopy(frameData()),
 			curFrame: ed.curFrame,
 		},
 	];
 
-	return doc;
+	return handle;
 
 }
 

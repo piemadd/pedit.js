@@ -10,3 +10,4 @@ min:
 .PHONY: assets
 assets:
 	base64 assets/icons.png
+	base64 assets/unscii.png
