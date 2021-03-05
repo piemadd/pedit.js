@@ -2,14 +2,11 @@
 // TODO: separate init code and functions
 // TODO: brush size
 // TODO: custom color
-// TODO: crop
 // TODO: improve move selection
 // TODO: rotate selection
 // TODO: scale selection
 // TODO: stroke rect
 // TODO: stroke circle
-// TODO: eyedropper
-// TODO: grab tool
 // TODO: bucket selection
 // TODO: cleaner action management
 
@@ -312,7 +309,11 @@ function makeCanvas(width, height, pixels) {
 			for (let i = 0; i < this.width; i++) {
 				for (let j = 0; j < this.height; j++) {
 					const c = other.get(i, j);
-					if (c) {
+					if (
+						c
+						&& i + x >= 0 && i + x < this.width
+						&& j + y >= 0 && j + y < this.height
+					) {
 						this.set(i + x, j + y, c);
 					}
 				}
@@ -825,6 +826,7 @@ function pedit(conf) {
 			drawCanvas(ed.fCanvas);
 		}
 
+		// draw selection
 		if (canvas.scissorRect) {
 
 			const p1 = canvas.scissorRect[0];
@@ -1197,6 +1199,14 @@ function pedit(conf) {
 					];
 					break;
 				}
+				case "move": {
+					const [dcx, dcy] = [ cx - pcx, cy - pcy ];
+					canvas.scissorRect[0][0] += dcx;
+					canvas.scissorRect[1][0] += dcx;
+					canvas.scissorRect[0][1] += dcy;
+					canvas.scissorRect[1][1] += dcy;
+					break;
+				}
 			}
 
 		},
@@ -1209,6 +1219,7 @@ function pedit(conf) {
 
 			const canvas = ed.frames[ed.curFrame];
 			const [cx, cy] = toCanvasPos(session.mousePos);
+			// TODO: sometimes mouseStartPos is null (mouseup fired without any mousedown before)
 			const [scx, scy] = toCanvasPos(session.mouseStartPos);
 
 			session.mouseStartPos = null;
@@ -1230,18 +1241,12 @@ function pedit(conf) {
 				case "move":
 					if (canvas.scissorRect) {
 						const [dcx, dcy] = [ cx - scx, cy - scy ];
-						canvas.scissorRect[0][0] += dcx;
-						canvas.scissorRect[1][0] += dcx;
-						canvas.scissorRect[0][1] += dcy;
-						canvas.scissorRect[1][1] += dcy;
 						canvas.merge(ed.fCanvas, dcx, dcy);
 						ed.fCanvas.clear();
 						pushState();
 					}
 					break;
 			}
-
-			// TODO: should only push on change
 
 		},
 
