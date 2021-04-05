@@ -303,7 +303,29 @@ function makeCanvas(width, height, pixels) {
 				return false;
 			}
 
-			this._bucketRec(x, y, target, color);
+			const stack = [];
+
+			stack.push([x, y]);
+
+			while (stack.length) {
+
+				const [x, y] = stack.pop();
+
+				if (!this.checkPt(x, y)) {
+					continue;
+				}
+
+				if (!colorEq(this.get(x, y), target)) {
+					continue;
+				}
+
+				this.set(x, y, color);
+				stack.push([x, y - 1]);
+				stack.push([x - 1, y]);
+				stack.push([x + 1, y]);
+				stack.push([x, y + 1]);
+
+			}
 
 			return true;
 
@@ -334,24 +356,6 @@ function makeCanvas(width, height, pixels) {
 
 		_getIndex(x, y) {
 			return y * 4 * this.width + x * 4;
-		},
-
-		_bucketRec(x, y, target, color) {
-
-			if (!this.checkPt(x, y)) {
-				return;
-			}
-
-			if (!colorEq(this.get(x, y), target)) {
-				return;
-			}
-
-			this.set(x, y, color);
-			this._bucketRec(x, y - 1, target, color);
-			this._bucketRec(x - 1, y, target, color);
-			this._bucketRec(x + 1, y, target, color);
-			this._bucketRec(x, y + 1, target, color);
-
 		},
 
 		clampPt(pt) {
