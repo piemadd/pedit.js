@@ -1003,7 +1003,7 @@ function pedit(conf) {
 			ctx.lineWidth = 2;
 		}
 
-		// add / remove color
+		// add color
 		area({
 			x: 0,
 			y: ed.palette.length * 24,
@@ -1018,23 +1018,6 @@ function pedit(conf) {
 			},
 			click() {
 				colorSelDom.click();
-			},
-		});
-
-		area({
-			x: 0,
-			y: (ed.palette.length + 1) * 24,
-			w: 24,
-			h: 24,
-			draw() {
-				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-				ctx.fillRect(0, 0, 24, 24);
-				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(0, 0, 24, 24);
-				drawText(ctx, "-", 0, 0, 24);
-			},
-			click() {
-				// TODO
 			},
 		});
 
@@ -1424,6 +1407,10 @@ function pedit(conf) {
 					if (canvas.scissorRect) {
 						deleteSelection();
 						canvas.scissorRect = null;
+					} else {
+						if (confirm("remove selected color?")) {
+							ed.palette = ed.palette.filter(c => !colorEq(c, ed.color));
+						}
 					}
 					break;
 				case "Escape":
