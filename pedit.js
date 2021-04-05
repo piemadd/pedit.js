@@ -290,7 +290,6 @@ function makeCanvas(width, height, pixels) {
 
 		},
 
-		// TODO: stack explosion
 		bucket(x, y, color) {
 
 			if (!this.checkPt(x, y)) {
