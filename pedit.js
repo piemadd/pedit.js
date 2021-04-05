@@ -9,6 +9,7 @@
 // TODO: stroke circle
 // TODO: bucket selection
 // TODO: cleaner action management
+// TODO: putImageData() instead of fillRect()
 
 const MIN_SCALE = 2;
 const MAX_SCALE = 64;
@@ -114,6 +115,7 @@ function makeCanvas(width, height, pixels) {
 		pixels: Array(width * height * 4).fill(0),
 		blend: "alpha",
 		scissorRect: null,
+		el: document.createElement("canvas"),
 
 		data() {
 			return {
@@ -288,6 +290,7 @@ function makeCanvas(width, height, pixels) {
 
 		},
 
+		// TODO: stack explosion
 		bucket(x, y, color) {
 
 			if (!this.checkPt(x, y)) {
@@ -295,6 +298,7 @@ function makeCanvas(width, height, pixels) {
 			}
 
 			const target = this.get(x, y);
+
 			if (colorEq(target, color)) {
 				return false;
 			}
@@ -439,17 +443,20 @@ function makeCanvas(width, height, pixels) {
 			);
 		},
 
+		updateEl() {
+
+			this.el.width = this.width;
+			this.el.height = this.height;
+
+			const ctx = this.el.getContext("2d");
+
+			ctx.putImageData(this.toImageData(), 0, 0);
+
+		},
+
 		toDataURL() {
-
-			const pCanvas = document.createElement("canvas");
-			pCanvas.width = this.width;
-			pCanvas.height = this.height;
-			const imgData = this.toImageData();
-			const ctx = pCanvas.getContext("2d");
-			ctx.putImageData(imgData, 0, 0);
-
-			return pCanvas.toDataURL();
-
+			this.updateEl();
+			return this.el.toDataURL();
 		},
 
 	};
@@ -457,6 +464,8 @@ function makeCanvas(width, height, pixels) {
 	if (pixels) {
 		canvas.load(pixels);
 	}
+
+	canvas.updateEl();
 
 	return canvas;
 
@@ -481,6 +490,14 @@ function drawText(ctx, text, x, y, size) {
 			x += size;
 		}
 	}
+}
+
+function hex2rgb(hex) {
+	const val = parseInt(hex, 16);
+	const r = (val >> 16) & 255;
+	const g = (val >> 8) & 255;
+	const b = val & 255;
+	return [r, g, b, 255];
 }
 
 function pedit(conf) {
@@ -577,6 +594,16 @@ function pedit(conf) {
 // 			action: undo,
 // 		},
 	};
+
+	const colorSelDom = document.createElement("input");
+
+	colorSelDom.type = "color";
+
+	colorSelDom.addEventListener("change", (e) => {
+		const c = hex2rgb(e.target.value.substring(1))
+		ed.palette.push(c);
+		ed.color = c;
+	});
 
 	function crop() {
 
@@ -789,16 +816,40 @@ function pedit(conf) {
 		const ox = ed.view.offset[0];
 		const oy = ed.view.offset[1];
 
+		const area = (conf = {}) => {
+			ctx.save();
+			ctx.translate(conf.x, conf.y);
+			conf.draw && conf.draw();
+			ctx.restore();
+			if (mouseInRect(conf.x, conf.y, conf.w, conf.h)) {
+				hovering = true;
+				conf.hover && conf.hover();
+				if (session.mousePressed && !mousePressProcessed) {
+					conf.click && conf.click();
+					mousePressProcessed = true;
+				}
+			}
+		};
+
 		ctx.lineWidth = 2;
 
 		// bg
 		ctx.clearRect(0, 0, cw, ch);
 		ctx.fillStyle = colorCSS([200, 200, 200, 255]);
 		ctx.fillRect(0, 0, cw, ch);
-
-		// canvas
 		ctx.fillStyle = colorCSS([255, 255, 255, 255]);
 		ctx.fillRect(ox, oy, canvas.width * s, canvas.height * s);
+
+		// canvas
+// 		function drawCanvas(ca, dx = 0, dy = 0) {
+// 			ca.updateEl();
+// 			ctx.save();
+// 			ctx.translate(ox, oy);
+// 			ctx.scale(s, s);
+// 			ctx.translate(dx, dy);
+// 			ctx.drawImage(ca.el, 0, 0);
+// 			ctx.restore();
+// 		}
 
 		function drawCanvas(ca, dx = 0, dy = 0) {
 			for (let x = 0; x < ca.width; x++) {
@@ -814,7 +865,6 @@ function pedit(conf) {
 
 		drawCanvas(canvas);
 
-		// TODO: wrong
 		if (ed.tool === "move") {
 			if (session.mouseStartPos) {
 				const [cx, cy] = toCanvasPos(session.mousePos);
@@ -872,19 +922,22 @@ function pedit(conf) {
 				const ty = (h - ts) / 2;
 				const c = i === ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
 
-				ctx.fillStyle = colorCSS(c);
-				ctx.fillRect(ox + x, oy, w, -h);
-				drawText(ctx, `${i}`, ox + x + tx, oy - h + ty, ts);
-				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(ox + x, oy, w, -h);
-
-				if (mouseInRect(ox + x, oy, w, -h)) {
-					hovering = true;
-					if (session.mousePressed && !mousePressProcessed) {
+				area({
+					x: ox + x,
+					y: oy,
+					w: w,
+					h: -h,
+					draw() {
+						ctx.fillStyle = colorCSS(c);
+						ctx.fillRect(0, 0, w, -h);
+						drawText(ctx, `${i}`, tx, -h + ty, ts);
+						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+						ctx.strokeRect(0, 0, w, -h);
+					},
+					click() {
 						ed.curFrame = i;
-						mousePressProcessed = true;
-					}
-				}
+					},
+				});
 
 				x += w;
 
@@ -920,29 +973,66 @@ function pedit(conf) {
 
 		// colors
 		ed.palette.forEach((c, i) => {
-
-			ctx.fillStyle = colorCSS(c);
-			ctx.fillRect(0, i * 24, 24, 24);
-			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-			ctx.strokeRect(0, i * 24, 24, 24);
-
-			if (mouseInRect(0, i * 24, 24, 24)) {
-				hovering = true;
-				if (session.mousePressed && !mousePressProcessed) {
+			area({
+				x: 0,
+				y: i * 24,
+				w: 24,
+				h: 24,
+				draw() {
+					ctx.fillStyle = colorCSS(c);
+					ctx.fillRect(0, 0, 24, 24);
+					ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+					ctx.strokeRect(0, 0, 24, 24);
+				},
+				click() {
 					ed.color = ed.palette[i];
-					mousePressProcessed = true;
-				}
-			}
-
+				},
+			});
 		});
 
-		ed.palette.forEach((c, i) => {
-			if (colorEq(c, ed.color)) {
-				ctx.lineWidth = 4;
+		// selected color (need to draw on top)
+		const curColorIdx = ed.palette.findIndex(c => colorEq(c, ed.color));
+
+		if (curColorIdx) {
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+			ctx.strokeRect(0, curColorIdx * 24, 24, 24);
+			ctx.lineWidth = 2;
+		}
+
+		// add / remove color
+		area({
+			x: 0,
+			y: ed.palette.length * 24,
+			w: 24,
+			h: 24,
+			draw() {
+				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+				ctx.fillRect(0, 0, 24, 24);
 				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(0, i * 24, 24, 24);
-				ctx.lineWidth = 2;
-			}
+				ctx.strokeRect(0, 0, 24, 24);
+				drawText(ctx, "+", 0, 0, 24);
+			},
+			click() {
+				colorSelDom.click();
+			},
+		});
+
+		area({
+			x: 0,
+			y: (ed.palette.length + 1) * 24,
+			w: 24,
+			h: 24,
+			draw() {
+				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+				ctx.fillRect(0, 0, 24, 24);
+				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+				ctx.strokeRect(0, 0, 24, 24);
+				drawText(ctx, "-", 0, 0, 24);
+			},
+			click() {
+				// TODO
+			},
 		});
 
 		// tools
@@ -958,28 +1048,31 @@ function pedit(conf) {
 
 				const data = toolData[tool];
 
-				if (mouseInRect(x, y, w, h)) {
-
-					hovering = true;
-					tooltip = `${tool} (${data.key})`;
-
-					if (session.mousePressed && !mousePressProcessed) {
+				area({
+					x: x,
+					y: y,
+					w: w,
+					h: h,
+					draw() {
+						ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+						ctx.fillRect(0, 0, w, h);
+						ctx.drawImage(icons, 16 * data.icon, 0, 16, 16, 0, 0, w, h);
+						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+						ctx.strokeRect(0, 0, w, h);
+					},
+					click() {
 						ed.tool = tool;
-						mousePressProcessed = true;
-					}
-
-				}
-
-				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-				ctx.fillRect(x, y, w, h);
-				ctx.drawImage(icons, 16 * data.icon, 0, 16, 16, x, y, w, h);
-				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(x, y, w, h);
+					},
+					hover() {
+						tooltip = `${tool} (${data.key})`;
+					},
+				});
 
 				y += h;
 
 			}
 
+			// TODO: find it
 			// highlight current tool
 			y = 0;
 
@@ -1013,31 +1106,32 @@ function pedit(conf) {
 				let curHovering = false;
 				const action = actions[name];
 
-				if (mouseInRect(x, y, w, h)) {
-
-					hovering = true;
-					curHovering = true;
-					tooltip = `${name}`;
-
-					if (session.mousePressed && !mousePressProcessed) {
+				area({
+					x: x,
+					y: y,
+					w: w,
+					h: h,
+					draw() {
+						ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+						// TODO: doesn't work
+						if (session.mouseDown && curHovering) {
+							ctx.fillStyle = colorCSS([128, 128, 128, 255]);
+						} else {
+							ctx.fillStyle = colorCSS([255, 255, 255, 255]);
+						}
+						ctx.fillRect(0, 0, w, h);
+						ctx.drawImage(icons, 16 * action.icon, 0, 16, 16, 0, 0, w, h);
+						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
+						ctx.strokeRect(0, 0, w, h);
+					},
+					click() {
 						action.action();
-						mousePressProcessed = true;
-					}
-
-				}
-
-				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-
-				if (session.mouseDown && curHovering) {
-					ctx.fillStyle = colorCSS([128, 128, 128, 255]);
-				} else {
-					ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-				}
-
-				ctx.fillRect(x, y, w, h);
-				ctx.drawImage(icons, 16 * action.icon, 0, 16, 16, x, y, w, h);
-				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(x, y, w, h);
+					},
+					hover() {
+						curHovering = true;
+						tooltip = `${name}`;
+					},
+				});
 
 				x -= w;
 
