@@ -16,6 +16,8 @@
 <body>
 
 	<canvas tabindex=0 id="editor" width=480 height=480></canvas>
+	<button id="save">save</button>
+	<button id="load">load</button>
 	<pre>
 p: pen
 e: erasor
@@ -38,16 +40,33 @@ ms-z: redo
 m-s: save
 m-l: load
 	</pre>
+
 	<script type="module">
+
 		import pedit from "/pedit.js";
+
 		const canvas = document.querySelector("#editor");
+
 		canvas.focus();
-		pedit({
+
+		const doc = pedit({
 			canvas: canvas,
 			width: 64,
 			height: 64,
 		});
-		</script>
+
+		const saveBtn = document.querySelector("#save");
+		const loadBtn = document.querySelector("#load");
+
+		saveBtn.onclick = () => {
+			localStorage["pedit"] = JSON.stringify(doc.save());
+		};
+
+		loadBtn.onclick = () => {
+			doc.load(JSON.parse(localStorage["pedit"]));
+		};
+
+	</script>
 
 	</body>
 

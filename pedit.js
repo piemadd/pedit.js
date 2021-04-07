@@ -9,15 +9,15 @@
 // TODO: stroke circle
 // TODO: bucket selection
 // TODO: cleaner action management
-// TODO: putImageData() instead of fillRect()
+// TODO: viewport scale for bigger sprites
 
 const MIN_SCALE = 2;
 const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
 
-const icons = loadImg("iVBORw0KGgoAAAANSUhEUgAAAMAAAAAQCAYAAABA4nAoAAAAAXNSR0IArs4c6QAAAXpJREFUaIHtmlEOwyAIQO2y+1/ZfTVzVBAQKXa8ZEm1KhRBsWspSZIkyX9y3K1AYCoo72qrWvbVPSlXR/SQ15OJ1cM2FrIp+RIZmj4WeMtTE31laA050lVq9N54nNVy1GZmxbWQ37aDRJ9vd95IPeZMXAPO9tcyq5+VDhHSjlO+py4cu0rmyEpvdCwsACyAAqVOB9uvnkju+BwH1wYBVz6FxQ6lXcCsdukVC1T3uVcGwL9zx04gcTAsBSzlq3vLAe5rxufq1rvmyMX6tfU/Y0QNAPYDBMczCCjHwQ7VB1Hu4ZFWUYGmPSOhgfuSapeI6a2mq+S010dTB8uw/VkevTE670c5y02PuTIAKvhJwAyw0vBcR9Xm9tyxZ9pw9aLsi+layzWIpEj6Ws41OhaWAs0Kt1AeTsROqU8Pr3Ro9qDKbTNiFMyafF7ykoLVZ3enarHaZaj8k+rHhQoCauKkjpD/AzBIg+A84VOIaDvobi8xkgewzWcJSZI48wEj/mYgkYxC6QAAAABJRU5ErkJggg==");
-const font = loadImg("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");
+const icons = loadImg("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAQCAYAAABA4nAoAAAAAXNSR0IArs4c6QAAAXpJREFUaIHtmlEOwyAIQO2y+1/ZfTVzVBAQKXa8ZEm1KhRBsWspSZIkyX9y3K1AYCoo72qrWvbVPSlXR/SQ15OJ1cM2FrIp+RIZmj4WeMtTE31laA050lVq9N54nNVy1GZmxbWQ37aDRJ9vd95IPeZMXAPO9tcyq5+VDhHSjlO+py4cu0rmyEpvdCwsACyAAqVOB9uvnkju+BwH1wYBVz6FxQ6lXcCsdukVC1T3uVcGwL9zx04gcTAsBSzlq3vLAe5rxufq1rvmyMX6tfU/Y0QNAPYDBMczCCjHwQ7VB1Hu4ZFWUYGmPSOhgfuSapeI6a2mq+S010dTB8uw/VkevTE670c5y02PuTIAKvhJwAyw0vBcR9Xm9tyxZ9pw9aLsi+layzWIpEj6Ws41OhaWAs0Kt1AeTsROqU8Pr3Ro9qDKbTNiFMyafF7ykoLVZ3enarHaZaj8k+rHhQoCauKkjpD/AzBIg+A84VOIaDvobi8xkgewzWcJSZI48wEj/mYgkYxC6QAAAABJRU5ErkJggg==");
+const font = loadImg("data:image/png;base64,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");
 const fontMap = {};
 
 font.onload = () => {
@@ -80,25 +80,14 @@ const toolData = {
 	},
 };
 
-function deepCopy(input) {
-
-	if (typeof input !== "object" || input === null) {
-		return input;
-	}
-
-	const out = Array.isArray(input) ? [] : {};
-
-	for (const key in input) {
-		out[key] = deepCopy(input[key]);
-	}
-
-	return out;
-
-}
-
-function loadImg(code) {
+function loadImg(code, f) {
 	const img = new window.Image();
-	img.src = "data:image/png;base64," + code;
+	img.src = code;
+	if (f) {
+		img.onload = () => {
+			f(img);
+		};
+	}
 	return img;
 }
 
@@ -110,34 +99,40 @@ function makeCanvas(width, height, pixels) {
 
 	const canvas = {
 
-		width: width,
-		height: height,
-		pixels: Array(width * height * 4).fill(0),
+		img: new window.ImageData(
+			new Uint8ClampedArray(width * height * 4).fill(0),
+			width,
+			height,
+		),
 		blend: "alpha",
 		scissorRect: null,
 		el: document.createElement("canvas"),
 
 		data() {
-			return {
-				width: this.width,
-				height: this.height,
-				pixels: this.pixels,
-			};
+			return new window.ImageData(
+				new Uint8ClampedArray(this.img.data),
+				this.img.width,
+				this.img.height,
+			);
 		},
 
 		clone() {
-			return makeCanvas(this.width, this.height, this.pixels);
+			return makeCanvas(this.img.width, this.img.height, this.img.data.slice(0));
 		},
 
 		clear() {
-			this.pixels = Array(this.width * this.height * 4).fill(0);
+			this.img = new window.ImageData(
+				new Uint8ClampedArray(this.img.width * this.img.height * 4).fill(0),
+				this.img.width,
+				this.img.height,
+			);
 		},
 
-		load(pixels) {
-			if (pixels.length !== this.width * this.height * 4) {
+		setPixels(pixels) {
+			if (pixels.length !== this.img.width * this.img.height * 4) {
 				throw new Error("bad canvas bro");
 			}
-			this.pixels = deepCopy(pixels);
+			this.img.data.set(pixels);
 		},
 
 		set(x, y, c) {
@@ -154,10 +149,10 @@ function makeCanvas(width, height, pixels) {
 
 					const a = c[3] / 255;
 
-					this.pixels[i + 0] = this.pixels[i + 0] * (1 - a) + c[0] * a;
-					this.pixels[i + 1] = this.pixels[i + 1] * (1 - a) + c[1] * a;
-					this.pixels[i + 2] = this.pixels[i + 2] * (1 - a) + c[2] * a;
-					this.pixels[i + 3] = this.pixels[i + 3] * (1 - a) + c[3] * a;
+					this.img.data[i + 0] = this.img.data[i + 0] * (1 - a) + c[0] * a;
+					this.img.data[i + 1] = this.img.data[i + 1] * (1 - a) + c[1] * a;
+					this.img.data[i + 2] = this.img.data[i + 2] * (1 - a) + c[2] * a;
+					this.img.data[i + 3] = this.img.data[i + 3] * (1 - a) + c[3] * a;
 
 					break;
 
@@ -165,22 +160,22 @@ function makeCanvas(width, height, pixels) {
 
 				case "replace":
 
-					this.pixels[i + 0] = c[0];
-					this.pixels[i + 1] = c[1];
-					this.pixels[i + 2] = c[2];
-					this.pixels[i + 3] = c[3];
+					this.img.data[i + 0] = c[0];
+					this.img.data[i + 1] = c[1];
+					this.img.data[i + 2] = c[2];
+					this.img.data[i + 3] = c[3];
 
 					break;
 
 				case "add": {
 
-					const da = this.pixels[i + 3] / 255;
+					const da = this.img.data[i + 3] / 255;
 					const sa = c[3] / 255;
 
-					this.pixels[i + 0] = this.pixels[i + 0] * da + c[0] * sa;
-					this.pixels[i + 1] = this.pixels[i + 1] * da + c[1] * sa;
-					this.pixels[i + 2] = this.pixels[i + 2] * da + c[2] * sa;
-					this.pixels[i + 3] = this.pixels[i + 3] * da + c[3] * sa;
+					this.img.data[i + 0] = this.img.data[i + 0] * da + c[0] * sa;
+					this.img.data[i + 1] = this.img.data[i + 1] * da + c[1] * sa;
+					this.img.data[i + 2] = this.img.data[i + 2] * da + c[2] * sa;
+					this.img.data[i + 3] = this.img.data[i + 3] * da + c[3] * sa;
 
 					break;
 
@@ -195,10 +190,10 @@ function makeCanvas(width, height, pixels) {
 		get(x, y) {
 
 			const i = this._getIndex(x, y);
-			const r = this.pixels[i + 0];
-			const g = this.pixels[i + 1];
-			const b = this.pixels[i + 2];
-			const a = this.pixels[i + 3];
+			const r = this.img.data[i + 0];
+			const g = this.img.data[i + 1];
+			const b = this.img.data[i + 2];
+			const a = this.img.data[i + 3];
 
 			return [r, g, b, a];
 
@@ -331,13 +326,13 @@ function makeCanvas(width, height, pixels) {
 		},
 
 		merge(other, x = 0, y = 0) {
-			for (let i = 0; i < this.width; i++) {
-				for (let j = 0; j < this.height; j++) {
+			for (let i = 0; i < this.img.width; i++) {
+				for (let j = 0; j < this.img.height; j++) {
 					const c = other.get(i, j);
 					if (
 						c
-						&& i + x >= 0 && i + x < this.width
-						&& j + y >= 0 && j + y < this.height
+						&& i + x >= 0 && i + x < this.img.width
+						&& j + y >= 0 && j + y < this.img.height
 					) {
 						this.set(i + x, j + y, c);
 					}
@@ -350,15 +345,15 @@ function makeCanvas(width, height, pixels) {
 				const r = this.scissorRect;
 				return x >= r[0][0] && x < r[1][0] && y >= r[0][1] && y < r[1][1];
 			}
-			return x >= 0 && x < this.width && y >= 0 && y < this.height;
+			return x >= 0 && x < this.img.width && y >= 0 && y < this.img.height;
 		},
 
 		_getIndex(x, y) {
-			return y * 4 * this.width + x * 4;
+			return y * 4 * this.img.width + x * 4;
 		},
 
 		clampPt(pt) {
-			return [clamp(pt[0], 0, this.width), clamp(pt[1], 0, this.height)];
+			return [clamp(pt[0], 0, this.img.width), clamp(pt[1], 0, this.img.height)];
 		},
 
 		// TODO: smarter
@@ -366,14 +361,14 @@ function makeCanvas(width, height, pixels) {
 		bbox() {
 
 			let p1 = [0, 0];
-			let p2 = [this.width - 1, this.height - 1];
+			let p2 = [this.img.width - 1, this.img.height - 1];
 
 			loopX:
 			for (let x = p1[0]; x <= p2[0]; x++) {
 				loopY:
 				for (let y = p1[1]; y <= p2[1]; y++) {
 					const i = this._getIndex(x, y);
-					if (this.pixels[i + 3] !== 0) {
+					if (this.img.data[i + 3] !== 0) {
 						p1[0] = x;
 						break loopX;
 					}
@@ -385,7 +380,7 @@ function makeCanvas(width, height, pixels) {
 				loopY:
 				for (let y = p1[1]; y <= p2[1]; y++) {
 					const i = this._getIndex(x, y);
-					if (this.pixels[i + 3] !== 0) {
+					if (this.img.data[i + 3] !== 0) {
 						p2[0] = x;
 						break loopX;
 					}
@@ -397,7 +392,7 @@ function makeCanvas(width, height, pixels) {
 				loopX:
 				for (let x = p1[0]; x <= p2[0]; x++) {
 					const i = this._getIndex(x, y);
-					if (this.pixels[i + 3] !== 0) {
+					if (this.img.data[i + 3] !== 0) {
 						p1[1] = y;
 						break loopY;
 					}
@@ -409,7 +404,7 @@ function makeCanvas(width, height, pixels) {
 				loopX:
 				for (let x = p1[0]; x <= p2[0]; x++) {
 					const i = this._getIndex(x, y);
-					if (this.pixels[i + 3] !== 0) {
+					if (this.img.data[i + 3] !== 0) {
 						p2[1] = y;
 						break loopY;
 					}
@@ -432,43 +427,48 @@ function makeCanvas(width, height, pixels) {
 				}
 			}
 
-			this.width = w;
-			this.height = h;
-			this.pixels = newCanvas.pixels;
+			this.img = newCanvas.img;
 
-		},
-
-		toImageData() {
-			return new window.ImageData(
-				new Uint8ClampedArray(this.pixels),
-				this.width,
-				this.height,
-			);
 		},
 
 		updateEl() {
 
-			this.el.width = this.width;
-			this.el.height = this.height;
+			this.el.width = this.img.width;
+			this.el.height = this.img.height;
 
 			const ctx = this.el.getContext("2d");
 
-			ctx.putImageData(this.toImageData(), 0, 0);
+			ctx.putImageData(this.img, 0, 0);
 
 		},
 
-		toDataURL() {
+		base64() {
 			this.updateEl();
-			return this.el.toDataURL();
+			return this.el.toDataURL("image/png");
+		},
+
+		loadImg(img) {
+
+			this.el.width = img.width;
+			this.el.height = img.height;
+
+			const ctx = this.el.getContext("2d");
+			ctx.drawImage(img, 0, 0);
+			this.img = ctx.getImageData(0, 0, img.width, img.height);
+
+		},
+
+		loadBase64(base64) {
+			loadImg(base64, (img) => {
+				this.loadImg(img);
+			});
 		},
 
 	};
 
 	if (pixels) {
-		canvas.load(pixels);
+		canvas.setPixels(pixels);
 	}
-
-	canvas.updateEl();
 
 	return canvas;
 
@@ -606,6 +606,7 @@ function pedit(conf) {
 		const c = hex2rgb(e.target.value.substring(1))
 		ed.palette.push(c);
 		ed.color = c;
+		trigger("palette", ed.palette);
 	});
 
 	function crop() {
@@ -760,7 +761,7 @@ function pedit(conf) {
 		}
 
 		ed.state.stack.push({
-			frames: deepCopy(frameData()),
+			frames: frameData(),
 			curFrame: ed.curFrame,
 		});
 
@@ -770,7 +771,7 @@ function pedit(conf) {
 
 	function applyState(state) {
 		ed.frames = state.frames.map((f) => {
-			return makeCanvas(f.width, f.height, f.pixels);
+			return makeCanvas(f.width, f.height, f.data);
 		});
 		ed.curFrame = state.curFrame;
 		trigger("change");
@@ -841,29 +842,17 @@ function pedit(conf) {
 		ctx.fillStyle = colorCSS([200, 200, 200, 255]);
 		ctx.fillRect(0, 0, cw, ch);
 		ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-		ctx.fillRect(ox, oy, canvas.width * s, canvas.height * s);
+		ctx.fillRect(ox, oy, canvas.img.width * s, canvas.img.height * s);
 
 		// canvas
-// 		function drawCanvas(ca, dx = 0, dy = 0) {
-// 			ca.updateEl();
-// 			ctx.save();
-// 			ctx.translate(ox, oy);
-// 			ctx.scale(s, s);
-// 			ctx.translate(dx, dy);
-// 			ctx.drawImage(ca.el, 0, 0);
-// 			ctx.restore();
-// 		}
-
 		function drawCanvas(ca, dx = 0, dy = 0) {
-			for (let x = 0; x < ca.width; x++) {
-				for (let y = 0; y < ca.height; y++) {
-					const c = ca.get(x, y);
-					if (c[3] !== 0) {
-						ctx.fillStyle = colorCSS(c);
-						ctx.fillRect((x + dx) * s + ox, (y + dy) * s + oy, s, s);
-					}
-				}
-			}
+			ca.updateEl();
+			ctx.save();
+			ctx.translate(ox, oy);
+			ctx.scale(s, s);
+			ctx.translate(dx, dy);
+			ctx.drawImage(ca.el, 0, 0);
+			ctx.restore();
 		}
 
 		drawCanvas(canvas);
@@ -909,7 +898,7 @@ function pedit(conf) {
 		}
 
 		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-		ctx.strokeRect(ox, oy, canvas.width * s, canvas.height * s);
+		ctx.strokeRect(ox, oy, canvas.img.width * s, canvas.img.height * s);
 
 		// frame no.
 		{
@@ -1410,6 +1399,7 @@ function pedit(conf) {
 					} else {
 						if (confirm("remove selected color?")) {
 							ed.palette = ed.palette.filter(c => !colorEq(c, ed.color));
+							trigger("palette", ed.palette);
 						}
 					}
 					break;
@@ -1446,18 +1436,6 @@ function pedit(conf) {
 			return frameData();
 		},
 
-		load(data) {
-
-			if (!data || data.length <= 0) {
-				return;
-			}
-
-			ed.frames = data.map((d) => {
-				return makeCanvas(d.width, d.height, d.pixels);
-			});
-
-		},
-
 		on(ev, f) {
 			if (!ed.events[ev]) {
 				ed.events[ev] = [];
@@ -1486,20 +1464,33 @@ function pedit(conf) {
 			}
 		},
 
+		save() {
+			return {
+				width: ed.width,
+				height: ed.height,
+				frames: ed.frames.map(f => f.base64()),
+			};
+		},
+
+		load(data) {
+			ed.width = data.width;
+			ed.height = data.height;
+			data.frames.forEach((f, i) => {
+				ed.frames[i] = makeCanvas(data.width, data.height);
+				ed.frames[i].loadBase64(f);
+			});
+		},
+
 	};
 
 	if (conf.data) {
 		handle.load(conf.data);
 	}
 
-	if (conf.onChange) {
-		handle.on("change", conf.onChange);
-	}
-
 	// init state list (don't want to trigger "change" so no pushState())
 	ed.state.stack = [
 		{
-			frames: deepCopy(frameData()),
+			frames: frameData(),
 			curFrame: ed.curFrame,
 		},
 	];
