@@ -857,6 +857,8 @@ function pedit(conf) {
 
 				draw() {
 
+					ctx.save();
+
 					list.forEach((item) => {
 
 						const offset = (() => {
@@ -872,6 +874,8 @@ function pedit(conf) {
 						ctx.translate(-offset, item.height + margin);
 
 					});
+
+					ctx.restore();
 
 				},
 
@@ -898,6 +902,8 @@ function pedit(conf) {
 
 				draw() {
 
+					ctx.save();
+
 					list.forEach((item) => {
 
 						const offset = (() => {
@@ -913,6 +919,8 @@ function pedit(conf) {
 						ctx.translate(item.width + margin, -offset);
 
 					});
+
+					ctx.restore();
 
 				},
 
@@ -1011,31 +1019,8 @@ function pedit(conf) {
 
 		}
 
-		function move(x, y, item) {
-
-			return {
-
-				width: item.width,
-				height: item.height,
-
-				draw() {
-					ctx.save();
-					ctx.translate(x, y);
-					item.draw();
-					ctx.restore();
-				},
-
-			};
-
-		}
-
-		function frame(w, h, list, conf = {}) {
-			return frame2(w, h, list.map(([item, pos]) => {
-				return [item, [pos[0] * (w - item.width), pos[1] * (h - item.height)]];
-			}), conf);
-		}
-
-		function frame2(w, h, list, conf = {}) {
+		// absolute frame
+		function aframe(w, h, list, conf = {}) {
 
 			return {
 
@@ -1061,6 +1046,13 @@ function pedit(conf) {
 
 		}
 
+		// propotinal frame
+		function pframe(w, h, list, conf = {}) {
+			return aframe(w, h, list.map(([item, pos]) => {
+				return [item, [pos[0] * (w - item.width), pos[1] * (h - item.height)]];
+			}), conf);
+		}
+
 		// bg
 		rect(cw, ch, {
 			bg: [200, 200, 200, 255],
@@ -1073,6 +1065,7 @@ function pedit(conf) {
 					padding: cur ? 6 : 3,
 					bg: cur ? [255, 255, 255, 255] : [230, 230, 230, 255],
 					border: [0, 0, 0, 255],
+					size: 16,
 					click() {
 						ed.curFrame = i;
 					},
@@ -1085,7 +1078,7 @@ function pedit(conf) {
 			border: [0, 0, 0, 255],
 		});
 
-		frame2(cw, ch, [
+		aframe(cw, ch, [
 			[ canvasBgUI, [ ox, oy ] ],
 			[ frameNumUI, [ ox, oy - frameNumUI.height, frameNumUI, ] ],
 		]).draw();
@@ -1177,12 +1170,12 @@ function pedit(conf) {
 
 		const style = {
 			padding: 3,
-			size: 12,
+			size: 16,
 			bg: [255, 255, 255, 255],
 			border: [0, 0, 0, 255],
 		};
 
-		const paletteUI =  vstack([
+		const paletteUI = vstack([
 			...ed.palette.map((c) => {
 				return rect(24, 24, {
 					bg: c,
@@ -1282,7 +1275,7 @@ function pedit(conf) {
 			}),
 		]);
 
-		frame(cw, ch, [
+		pframe(cw, ch, [
 			[ paletteUI, [ 0, 0 ], ],
 			[ toolsUI,   [ 1, 0 ], ],
 			[ actionsUI, [ 1, 1 ], ],
@@ -1301,7 +1294,7 @@ function pedit(conf) {
 				border: [0, 0, 0, 255],
 			});
 
-			frame2(cw, ch, [
+			aframe(cw, ch, [
 				[ tooltipUI, [ mx - tooltipUI.width - margin, my + margin, ] ]
 			]).draw();
 
