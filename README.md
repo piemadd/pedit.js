@@ -1,1 +1,3 @@
 embeddable pixel / sprite editor in the browser
+
+![ss](misc/ss.png)
