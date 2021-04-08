@@ -853,30 +853,35 @@ function pedit(conf) {
 			}
 
 			return {
+
 				width: w,
 				height: h,
+
 				draw() {
+
 					ctx.save();
 					ctx.translate(x, y);
+
 					list.forEach((item) => {
-						let offset = 0;
-						switch (align) {
-							case "left":
-								offset = 0;
-								break;
-							case "center":
-								offset = (w - item.width) / 2;
-								break;
-							case "right":
-								offset = (w - item.width);
-								break;
-						}
+
+						const offset = (() => {
+							switch (align) {
+								case "left": return 0;
+								case "center": return (w - item.width) / 2;
+								case "left": return (w - item.width);
+							}
+						})();
+
 						ctx.translate(offset, 0);
 						item.draw();
 						ctx.translate(-offset, item.height + margin);
+
 					});
+
 					ctx.restore();
+
 				},
+
 			};
 
 		}
@@ -896,30 +901,35 @@ function pedit(conf) {
 			}
 
 			return {
+
 				width: w,
 				height: h,
+
 				draw() {
+
 					ctx.save();
 					ctx.translate(x, y);
+
 					list.forEach((item) => {
-						let offset = 0;
-						switch (align) {
-							case "top":
-								offset = 0;
-								break;
-							case "center":
-								offset = (h - item.height) / 2;
-								break;
-							case "bottom":
-								offset = (h - item.height);
-								break;
-						}
+
+						const offset = (() => {
+							switch (align) {
+								case "top": return 0;
+								case "center": return (h - item.height) / 2;
+								case "bottom": return (h - item.height);
+							}
+						})();
+
 						ctx.translate(0, offset);
 						item.draw();
 						ctx.translate(item.width + margin, -offset);
+
 					});
+
 					ctx.restore();
+
 				},
+
 			};
 
 		}
@@ -1271,6 +1281,15 @@ function pedit(conf) {
 			};
 
 			const animsUI = vstack([
+				text("+", {
+					...style,
+					click() {
+						const name = prompt("anim name:");
+						if (name) {
+							ed.anims[name] = [0, 0];
+						}
+					},
+				}),
 				...Object.keys(ed.anims).map((name) => {
 					const bound = ed.anims[name];
 					return hstack([
@@ -1293,15 +1312,6 @@ function pedit(conf) {
 							},
 						}),
 					]);
-				}),
-				text("anim +", {
-					...style,
-					click() {
-						const name = prompt("anim name:");
-						if (name) {
-							ed.anims[name] = [0, 0];
-						}
-					},
 				}),
 			]);
 
@@ -1670,6 +1680,7 @@ function pedit(conf) {
 				width: ed.width,
 				height: ed.height,
 				frames: ed.frames.map(f => f.base64()),
+				anims: ed.anims,
 			};
 		},
 
@@ -1680,6 +1691,7 @@ function pedit(conf) {
 				ed.frames[i] = makeCanvas(data.width, data.height);
 				ed.frames[i].loadBase64(f);
 			});
+			ed.anims = data.anims;
 		},
 
 	};
