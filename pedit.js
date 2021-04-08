@@ -824,6 +824,20 @@ function pedit(conf) {
 		const ox = ed.view.offset[0];
 		const oy = ed.view.offset[1];
 
+		function handleInput(x, y, w, h, conf) {
+			if (conf.click || conf.hover) {
+				const pos = ctx.getTransform().transformPoint();
+				if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
+					hovering = true;
+					conf.hover && conf.hover();
+					if (session.mousePressed && !mousePressProcessed) {
+						conf.click && conf.click();
+						mousePressProcessed = true;
+					}
+				}
+			}
+		}
+
 		function vstack(list, conf = {}) {
 
 			const align = conf.align || "left";
@@ -912,7 +926,7 @@ function pedit(conf) {
 
 		function rect(w, h, conf = {}) {
 
-			const color = conf.color || [0, 0, 0, 255];
+			const bg = conf.bg || [0, 0, 0, 255];
 			const x = conf.x || 0;
 			const y = conf.y || 0;
 			const lineWidth = conf.lineWidth || 2;
@@ -924,8 +938,10 @@ function pedit(conf) {
 
 				draw() {
 
-					ctx.fillStyle = colorCSS(color);
-					ctx.fillRect(x, y, w, h);
+					if (conf.bg) {
+						ctx.fillStyle = colorCSS(conf.bg);
+						ctx.fillRect(x, y, w, h);
+					}
 
 					if (conf.border) {
 						ctx.lineWidth = lineWidth;
@@ -933,18 +949,7 @@ function pedit(conf) {
 						ctx.strokeRect(x, y, w, h);
 					}
 
-					if (conf.click || conf.hover) {
-						const pos = ctx.getTransform().transformPoint();
-						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
-							hovering = true;
-							conf.hover && conf.hover();
-							if (session.mousePressed && !mousePressProcessed) {
-								conf.click && conf.click();
-								mousePressProcessed = true;
-							}
-						}
-
-					}
+					handleInput(x, y, w, h, conf);
 
 				},
 
@@ -972,10 +977,11 @@ function pedit(conf) {
 
 				draw() {
 
-					if (conf.bg) {
-						ctx.fillStyle = colorCSS(conf.bg);
-						ctx.fillRect(x, y, w, h);
-					}
+					rect(w, h, {
+						x: x,
+						y: y,
+						...conf,
+					}).draw();
 
 					ctx.drawImage(
 						src,
@@ -984,24 +990,6 @@ function pedit(conf) {
 						x + padding, y + padding,
 						w - padding * 2, h - padding * 2
 					);
-
-					if (conf.border) {
-						ctx.lineWidth = lineWidth;
-						ctx.strokeStyle = colorCSS(conf.border);
-						ctx.strokeRect(x, y, w, h);
-					}
-
-					if (conf.click || conf.hover) {
-						const pos = ctx.getTransform().transformPoint();
-						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
-							hovering = true;
-							conf.hover && conf.hover();
-							if (session.mousePressed && !mousePressProcessed) {
-								conf.click && conf.click();
-								mousePressProcessed = true;
-							}
-						}
-					}
 
 				},
 
@@ -1027,31 +1015,14 @@ function pedit(conf) {
 
 				draw() {
 
-					if (conf.bg) {
-						ctx.fillStyle = colorCSS(conf.bg);
-						ctx.fillRect(x, y, w, h);
-					}
+					rect(w, h, {
+						x: x,
+						y: y,
+						...conf,
+					}).draw();
 
 					ctx.fillStyle = colorCSS(color);
 					drawText(ctx, txt, x + padding, y + padding, size);
-
-					if (conf.border) {
-						ctx.lineWidth = lineWidth;
-						ctx.strokeStyle = colorCSS(conf.border);
-						ctx.strokeRect(x, y, w, h);
-					}
-
-					if (conf.click || conf.hover) {
-						const pos = ctx.getTransform().transformPoint();
-						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
-							hovering = true;
-							conf.hover && conf.hover();
-							if (session.mousePressed && !mousePressProcessed) {
-								conf.click && conf.click();
-								mousePressProcessed = true;
-							}
-						}
-					}
 
 				},
 
@@ -1076,20 +1047,17 @@ function pedit(conf) {
 			};
 		}
 
-		ctx.lineWidth = 2;
-
 		// bg
-		ctx.clearRect(0, 0, cw, ch);
-		ctx.fillStyle = colorCSS([200, 200, 200, 255]);
-		ctx.fillRect(0, 0, cw, ch);
-		ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-		ctx.fillRect(ox, oy, canvas.img.width * s, canvas.img.height * s);
+		rect(cw, ch, {
+			bg: [200, 200, 200, 255],
+		}).draw();
 
-		const style = {
-			border: [0, 0, 0, 255],
+		rect(canvas.img.width * s, canvas.img.height * s, {
+			x: ox,
+			y: oy,
 			bg: [255, 255, 255, 255],
-			padding: 3,
-		};
+			border: [0, 0, 0, 255],
+		}).draw();
 
 		// canvas
 		function drawCanvas(ca, dx = 0, dy = 0) {
@@ -1144,9 +1112,6 @@ function pedit(conf) {
 
 		}
 
-		ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-		ctx.strokeRect(ox, oy, canvas.img.width * s, canvas.img.height * s);
-
 		// frame no.
 		{
 
@@ -1166,30 +1131,40 @@ function pedit(conf) {
 				align: "bottom",
 			});
 
-			group([frameNumUI], { x: ox, y: oy - frameNumUI.height }).draw();
+			group([
+				frameNumUI,
+			], {
+				x: ox,
+				y: oy - frameNumUI.height,
+			}).draw();
 
 		}
 
 		// cursor
 		{
 
-			const [x, y] = toCanvasPos(session.mousePos);
+			const [mx, my] = toCanvasPos(session.mousePos);
 
-			if (canvas.checkPt(x, y)) {
+			if (canvas.checkPt(mx, my)) {
 				switch (ed.tool) {
 					case "pen":
 					case "rect":
 					case "line":
 					case "circle":
 					case "bucket":
-						ctx.fillStyle = colorCSS(ed.color);
-						ctx.fillRect(x * s + ox, y * s + oy, s, s);
+						rect(s, s, {
+							x: mx * s + ox,
+							y: my * s + oy,
+							bg: ed.color,
+						}).draw();
 						break;
 					case "erasor":
-						ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-						ctx.fillRect(x * s + ox, y * s + oy, s, s);
-						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-						ctx.strokeRect(x * s + ox, y * s + oy, s, s);
+						rect(s, s, {
+							x: mx * s + ox,
+							y: my * s + oy,
+							bg: [255, 255, 255, 255],
+							border: [0, 0, 0, 255],
+						}).draw();
 						break;
 				}
 			}
@@ -1200,7 +1175,7 @@ function pedit(conf) {
 		vstack([
 			...ed.palette.map((c) => {
 				return rect(24, 24, {
-					color: c,
+					bg: c,
 					border: [0, 0, 0, 255],
 					lineWidth: colorEq(c, ed.color) ? 4 : 2,
 					click() {
@@ -1244,7 +1219,11 @@ function pedit(conf) {
 				}),
 			]);
 
-			group([toolsUI], { x: cw - toolsUI.width }).draw();
+			group([
+				toolsUI,
+			], {
+				x: cw - toolsUI.width,
+			}).draw();
 
 		}
 
@@ -1266,7 +1245,7 @@ function pedit(conf) {
 							action.action();
 						},
 						hover() {
-							tooltip = `${action}`;
+							tooltip = `${name}`;
 						},
 					});
 				}),
@@ -1291,11 +1270,29 @@ function pedit(conf) {
 				border: [0, 0, 0, 255],
 			};
 
-			const anims = vstack([
+			const animsUI = vstack([
 				...Object.keys(ed.anims).map((name) => {
-					return text(name, {
-						...style,
-					});
+					const bound = ed.anims[name];
+					return hstack([
+						text(name, {
+							...style,
+							click() {
+// 								playAnim(name),
+							},
+						}),
+						text(bound[0] + "", {
+							...style,
+							click() {
+								bound[0] = (bound[0] + 1) % ed.frames.length;
+							},
+						}),
+						text(bound[1] + "", {
+							...style,
+							click() {
+								bound[1] = (bound[1] + 1) % ed.frames.length;
+							},
+						}),
+					]);
 				}),
 				text("anim +", {
 					...style,
@@ -1308,27 +1305,32 @@ function pedit(conf) {
 				}),
 			]);
 
-			group([anims], { y: ch - anims.height }).draw();
+			group([
+				animsUI,
+			], {
+				y: ch - animsUI.height,
+			}).draw();
 
 		}
 
 		// tooltip
 		if (tooltip) {
 
-			const padding = 3;
 			const margin = 6;
-			const size = 12;
-			const w = tooltip.length * size + padding * 2;
-			const h = size + padding * 2;
 			const [mx, my] = session.mousePos;
-			const x = mx - w - margin;
-			const y = my + margin;
 
-			ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-			ctx.fillRect(x, y, w, h);
-			drawText(ctx, tooltip, x + padding, y + padding, size);
-			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-			ctx.strokeRect(x, y, w, h);
+			const tooltipUI = text(tooltip, {
+				padding: 3,
+				bg: [255, 255, 255, 255],
+				border: [0, 0, 0, 255],
+			});
+
+			group([
+				tooltipUI,
+			], {
+				x: mx - tooltipUI.width - margin,
+				y: my + margin,
+			}).draw();
 
 		}
 
