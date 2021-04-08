@@ -812,7 +812,7 @@ function pedit(conf) {
 		return ed.frames.map(f => f.data());
 	}
 
-	function frame(time) {
+	function update(time) {
 
 		let hovering = false;
 		let mousePressProcessed = false;
@@ -842,8 +842,6 @@ function pedit(conf) {
 
 			const align = conf.align || "left";
 			const margin = conf.margin || 0;
-			const x = conf.x || 0;
-			const y = conf.y || 0;
 			let w = 0;
 			let h = 0;
 
@@ -858,9 +856,6 @@ function pedit(conf) {
 				height: h,
 
 				draw() {
-
-					ctx.save();
-					ctx.translate(x, y);
 
 					list.forEach((item) => {
 
@@ -878,8 +873,6 @@ function pedit(conf) {
 
 					});
 
-					ctx.restore();
-
 				},
 
 			};
@@ -890,8 +883,6 @@ function pedit(conf) {
 
 			const align = conf.align || "top";
 			const margin = conf.margin || 0;
-			const x = conf.x || 0;
-			const y = conf.y || 0;
 			let w = 0;
 			let h = 0;
 
@@ -906,9 +897,6 @@ function pedit(conf) {
 				height: h,
 
 				draw() {
-
-					ctx.save();
-					ctx.translate(x, y);
 
 					list.forEach((item) => {
 
@@ -926,8 +914,6 @@ function pedit(conf) {
 
 					});
 
-					ctx.restore();
-
 				},
 
 			};
@@ -937,8 +923,6 @@ function pedit(conf) {
 		function rect(w, h, conf = {}) {
 
 			const bg = conf.bg || [0, 0, 0, 255];
-			const x = conf.x || 0;
-			const y = conf.y || 0;
 			const lineWidth = conf.lineWidth || 2;
 
 			return {
@@ -950,16 +934,16 @@ function pedit(conf) {
 
 					if (conf.bg) {
 						ctx.fillStyle = colorCSS(conf.bg);
-						ctx.fillRect(x, y, w, h);
+						ctx.fillRect(0, 0, w, h);
 					}
 
 					if (conf.border) {
 						ctx.lineWidth = lineWidth;
 						ctx.strokeStyle = colorCSS(conf.border);
-						ctx.strokeRect(x, y, w, h);
+						ctx.strokeRect(0, 0, w, h);
 					}
 
-					handleInput(x, y, w, h, conf);
+					handleInput(0, 0, w, h, conf);
 
 				},
 
@@ -974,8 +958,6 @@ function pedit(conf) {
 			const sh = conf.sh || src.height;
 			const w = (conf.width || sw) + padding * 2;
 			const h = (conf.height || sh) + padding * 2;
-			const x = conf.x || 0;
-			const y = conf.y || 0;
 			const sx = conf.sx || 0;
 			const sy = conf.sy || 0;
 			const lineWidth = conf.lineWidth || 2;
@@ -987,17 +969,13 @@ function pedit(conf) {
 
 				draw() {
 
-					rect(w, h, {
-						x: x,
-						y: y,
-						...conf,
-					}).draw();
+					rect(w, h, conf).draw();
 
 					ctx.drawImage(
 						src,
 						sx, sy,
 						sw, sh,
-						x + padding, y + padding,
+						padding, padding,
 						w - padding * 2, h - padding * 2
 					);
 
@@ -1011,8 +989,6 @@ function pedit(conf) {
 
 			const size = conf.size || 12;
 			const padding = conf.padding || 0;
-			const x = conf.x || 0;
-			const y = conf.y || 0;
 			const w = txt.length * size + padding * 2;
 			const h = size + padding * 2;
 			const color = conf.color || [0, 0, 0, 255];
@@ -1025,14 +1001,9 @@ function pedit(conf) {
 
 				draw() {
 
-					rect(w, h, {
-						x: x,
-						y: y,
-						...conf,
-					}).draw();
-
+					rect(w, h, conf).draw();
 					ctx.fillStyle = colorCSS(color);
-					drawText(ctx, txt, x + padding, y + padding, size);
+					drawText(ctx, txt, padding, padding, size);
 
 				},
 
@@ -1040,21 +1011,54 @@ function pedit(conf) {
 
 		}
 
-		function group(list, conf = {}) {
-			const x = conf.x || 0;
-			const y = conf.y || 0;
+		function move(x, y, item) {
+
 			return {
-				width: 0,
-				height: 0,
+
+				width: item.width,
+				height: item.height,
+
 				draw() {
 					ctx.save();
 					ctx.translate(x, y);
-					list.forEach((item) => {
-						item.draw();
-					});
+					item.draw();
 					ctx.restore();
 				},
+
 			};
+
+		}
+
+		function frame(w, h, list, conf = {}) {
+			return frame2(w, h, list.map(([item, pos]) => {
+				return [item, [pos[0] * (w - item.width), pos[1] * (h - item.height)]];
+			}), conf);
+		}
+
+		function frame2(w, h, list, conf = {}) {
+
+			return {
+
+				width: w,
+				height: h,
+
+				draw() {
+
+					rect(w, h, conf).draw();
+
+					list.forEach(([ item, [ x, y ] ]) => {
+
+						ctx.save();
+						ctx.translate(x, y);
+						item.draw();
+						ctx.restore();
+
+					});
+
+				},
+
+			};
+
 		}
 
 		// bg
@@ -1062,13 +1066,31 @@ function pedit(conf) {
 			bg: [200, 200, 200, 255],
 		}).draw();
 
-		rect(canvas.img.width * s, canvas.img.height * s, {
-			x: ox,
-			y: oy,
+		const frameNumUI = hstack([
+			...ed.frames.map((_, i) => {
+				const cur = i === ed.curFrame;
+				return text(i + "", {
+					padding: cur ? 6 : 3,
+					bg: cur ? [255, 255, 255, 255] : [230, 230, 230, 255],
+					border: [0, 0, 0, 255],
+					click() {
+						ed.curFrame = i;
+					},
+				});
+			}),
+		], { align: "bottom", });
+
+		const canvasBgUI = rect(canvas.img.width * s, canvas.img.height * s, {
 			bg: [255, 255, 255, 255],
 			border: [0, 0, 0, 255],
-		}).draw();
+		});
 
+		frame2(cw, ch, [
+			[ canvasBgUI, [ ox, oy ] ],
+			[ frameNumUI, [ ox, oy - frameNumUI.height, frameNumUI, ] ],
+		]).draw();
+
+		// TODO: make this UI primitive
 		// canvas
 		function drawCanvas(ca, dx = 0, dy = 0) {
 			ca.updateEl();
@@ -1122,34 +1144,6 @@ function pedit(conf) {
 
 		}
 
-		// frame no.
-		{
-
-			const frameNumUI = hstack([
-				...ed.frames.map((_, i) => {
-					const cur = i === ed.curFrame;
-					return text(i + "", {
-						padding: cur ? 6 : 3,
-						bg: cur ? [255, 255, 255, 255] : [230, 230, 230, 255],
-						border: [0, 0, 0, 255],
-						click() {
-							ed.curFrame = i;
-						},
-					});
-				}),
-			], {
-				align: "bottom",
-			});
-
-			group([
-				frameNumUI,
-			], {
-				x: ox,
-				y: oy - frameNumUI.height,
-			}).draw();
-
-		}
-
 		// cursor
 		{
 
@@ -1181,8 +1175,14 @@ function pedit(conf) {
 
 		}
 
-		// colors
-		vstack([
+		const style = {
+			padding: 3,
+			size: 12,
+			bg: [255, 255, 255, 255],
+			border: [0, 0, 0, 255],
+		};
+
+		const paletteUI =  vstack([
 			...ed.palette.map((c) => {
 				return rect(24, 24, {
 					bg: c,
@@ -1202,126 +1202,92 @@ function pedit(conf) {
 					colorSelDom.click();
 				},
 			}),
-		]).draw();
+		]);
 
-		// tools
-		{
-
-			const toolsUI = vstack([
-				...Object.keys(toolData).map((tool) => {
-					const data = toolData[tool];
-					return img(icons, {
-						sx: 16 * data.icon,
-						sw: 16,
-						sh: 16,
-						width: 32,
-						height: 32,
-						bg: [255, 255, 255, 255],
-						border: [0, 0, 0, 255],
-						lineWidth: ed.tool === tool ? 4 : 2,
-						click() {
-							ed.tool = tool;
-						},
-						hover() {
-							tooltip = `${tool} (${data.key})`;
-						},
-					});
-				}),
-			]);
-
-			group([
-				toolsUI,
-			], {
-				x: cw - toolsUI.width,
-			}).draw();
-
-		}
-
-		// action
-		{
-
-			const actionsUI = vstack([
-				...Object.keys(actions).map((name) => {
-					const action = actions[name];
-					return img(icons, {
-						sx: 16 * action.icon,
-						sw: 16,
-						sh: 16,
-						width: 32,
-						height: 32,
-						bg: [255, 255, 255, 255],
-						border: [0, 0, 0, 255],
-						click() {
-							action.action();
-						},
-						hover() {
-							tooltip = `${name}`;
-						},
-					});
-				}),
-			]);
-
-			group([
-				actionsUI,
-			], {
-				x: cw - actionsUI.width,
-				y: ch - actionsUI.height,
-			}).draw();
-
-		}
-
-		// anims
-		{
-
-			const style = {
-				padding: 3,
-				size: 12,
-				bg: [255, 255, 255, 255],
-				border: [0, 0, 0, 255],
-			};
-
-			const animsUI = vstack([
-				text("+", {
-					...style,
+		const toolsUI = vstack([
+			...Object.keys(toolData).map((tool) => {
+				const data = toolData[tool];
+				return img(icons, {
+					sx: 16 * data.icon,
+					sw: 16,
+					sh: 16,
+					width: 32,
+					height: 32,
+					bg: [255, 255, 255, 255],
+					border: [0, 0, 0, 255],
+					lineWidth: ed.tool === tool ? 4 : 2,
 					click() {
-						const name = prompt("anim name:");
-						if (name) {
-							ed.anims[name] = [0, 0];
-						}
+						ed.tool = tool;
 					},
-				}),
-				...Object.keys(ed.anims).map((name) => {
-					const bound = ed.anims[name];
-					return hstack([
-						text(name, {
-							...style,
-							click() {
+					hover() {
+						tooltip = `${tool} (${data.key})`;
+					},
+				});
+			}),
+		]);
+
+		const actionsUI = hstack([
+			...Object.keys(actions).map((name) => {
+				const action = actions[name];
+				return img(icons, {
+					sx: 16 * action.icon,
+					sw: 16,
+					sh: 16,
+					width: 32,
+					height: 32,
+					bg: [255, 255, 255, 255],
+					border: [0, 0, 0, 255],
+					click() {
+						action.action();
+					},
+					hover() {
+						tooltip = `${name}`;
+					},
+				});
+			}),
+		]);
+
+		const animsUI = vstack([
+			text("+", {
+				...style,
+				click() {
+					const name = prompt("anim name:");
+					if (name) {
+						ed.anims[name] = [0, 0];
+					}
+				},
+			}),
+			...Object.keys(ed.anims).map((name) => {
+				const bound = ed.anims[name];
+				return hstack([
+					text(name, {
+						...style,
+						click() {
 // 								playAnim(name),
-							},
-						}),
-						text(bound[0] + "", {
-							...style,
-							click() {
-								bound[0] = (bound[0] + 1) % ed.frames.length;
-							},
-						}),
-						text(bound[1] + "", {
-							...style,
-							click() {
-								bound[1] = (bound[1] + 1) % ed.frames.length;
-							},
-						}),
-					]);
-				}),
-			]);
+						},
+					}),
+					text(bound[0] + "", {
+						...style,
+						click() {
+							bound[0] = (bound[0] + 1) % ed.frames.length;
+						},
+					}),
+					text(bound[1] + "", {
+						...style,
+						click() {
+							bound[1] = (bound[1] + 1) % ed.frames.length;
+						},
+					}),
+				]);
+			}),
+		]);
 
-			group([
-				animsUI,
-			], {
-				y: ch - animsUI.height,
-			}).draw();
-
-		}
+		frame(cw, ch, [
+			[ paletteUI, [ 0, 0 ], ],
+			[ toolsUI,   [ 1, 0 ], ],
+			[ actionsUI, [ 1, 1 ], ],
+			[ animsUI,   [ 0, 1 ], ],
+		]).draw();
 
 		// tooltip
 		if (tooltip) {
@@ -1335,12 +1301,9 @@ function pedit(conf) {
 				border: [0, 0, 0, 255],
 			});
 
-			group([
-				tooltipUI,
-			], {
-				x: mx - tooltipUI.width - margin,
-				y: my + margin,
-			}).draw();
+			frame2(cw, ch, [
+				[ tooltipUI, [ mx - tooltipUI.width - margin, my + margin, ] ]
+			]).draw();
 
 		}
 
@@ -1398,11 +1361,11 @@ function pedit(conf) {
 
 		session.mousePressed = false;
 
-		window.requestAnimationFrame(frame);
+		window.requestAnimationFrame(update);
 
 	}
 
-	window.requestAnimationFrame(frame);
+	window.requestAnimationFrame(update);
 
 	const events = {
 
