@@ -15,6 +15,7 @@ const MIN_SCALE = 2;
 const MAX_SCALE = 64;
 const PADDING = 120;
 const MAX_STATES = 64;
+const VERSION = "0.1.0";
 
 const icons = loadImg("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAQCAYAAABA4nAoAAAAAXNSR0IArs4c6QAAAXpJREFUaIHtmlEOwyAIQO2y+1/ZfTVzVBAQKXa8ZEm1KhRBsWspSZIkyX9y3K1AYCoo72qrWvbVPSlXR/SQ15OJ1cM2FrIp+RIZmj4WeMtTE31laA050lVq9N54nNVy1GZmxbWQ37aDRJ9vd95IPeZMXAPO9tcyq5+VDhHSjlO+py4cu0rmyEpvdCwsACyAAqVOB9uvnkju+BwH1wYBVz6FxQ6lXcCsdukVC1T3uVcGwL9zx04gcTAsBSzlq3vLAe5rxufq1rvmyMX6tfU/Y0QNAPYDBMczCCjHwQ7VB1Hu4ZFWUYGmPSOhgfuSapeI6a2mq+S010dTB8uw/VkevTE670c5y02PuTIAKvhJwAyw0vBcR9Xm9tyxZ9pw9aLsi+layzWIpEj6Ws41OhaWAs0Kt1AeTsROqU8Pr3Ro9qDKbTNiFMyafF7ykoLVZ3enarHaZaj8k+rHhQoCauKkjpD/AzBIg+A84VOIaDvobi8xkgewzWcJSZI48wEj/mYgkYxC6QAAAABJRU5ErkJggg==");
 const font = loadImg("data:image/png;base64,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");
@@ -535,6 +536,9 @@ function pedit(conf) {
 		// tmp buffer
 		fCanvas: makeCanvas(conf.width, conf.height),
 
+		// anim
+		anims: {},
+
 		tool: "pen",
 		color: [0, 0, 0, 255],
 		palette: conf.palette || [
@@ -820,20 +824,257 @@ function pedit(conf) {
 		const ox = ed.view.offset[0];
 		const oy = ed.view.offset[1];
 
-		const area = (conf = {}) => {
-			ctx.save();
-			ctx.translate(conf.x, conf.y);
-			conf.draw && conf.draw();
-			ctx.restore();
-			if (mouseInRect(conf.x, conf.y, conf.w, conf.h)) {
-				hovering = true;
-				conf.hover && conf.hover();
-				if (session.mousePressed && !mousePressProcessed) {
-					conf.click && conf.click();
-					mousePressProcessed = true;
-				}
+		function vstack(list, conf = {}) {
+
+			const align = conf.align || "left";
+			const margin = conf.margin || 0;
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			let w = 0;
+			let h = 0;
+
+			for (const item of list) {
+				w = Math.max(item.width, w);
+				h += item.height + margin;
 			}
-		};
+
+			return {
+				width: w,
+				height: h,
+				draw() {
+					ctx.save();
+					ctx.translate(x, y);
+					list.forEach((item) => {
+						let offset = 0;
+						switch (align) {
+							case "left":
+								offset = 0;
+								break;
+							case "center":
+								offset = (w - item.width) / 2;
+								break;
+							case "right":
+								offset = (w - item.width);
+								break;
+						}
+						ctx.translate(offset, 0);
+						item.draw();
+						ctx.translate(-offset, item.height + margin);
+					});
+					ctx.restore();
+				},
+			};
+
+		}
+
+		function hstack(list, conf = {}) {
+
+			const align = conf.align || "top";
+			const margin = conf.margin || 0;
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			let w = 0;
+			let h = 0;
+
+			for (const item of list) {
+				w += item.width;
+				h = Math.max(item.height, h);
+			}
+
+			return {
+				width: w,
+				height: h,
+				draw() {
+					ctx.save();
+					ctx.translate(x, y);
+					list.forEach((item) => {
+						let offset = 0;
+						switch (align) {
+							case "top":
+								offset = 0;
+								break;
+							case "center":
+								offset = (h - item.height) / 2;
+								break;
+							case "bottom":
+								offset = (h - item.height);
+								break;
+						}
+						ctx.translate(0, offset);
+						item.draw();
+						ctx.translate(item.width + margin, -offset);
+					});
+					ctx.restore();
+				},
+			};
+
+		}
+
+		function rect(w, h, conf = {}) {
+
+			const color = conf.color || [0, 0, 0, 255];
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			const lineWidth = conf.lineWidth || 2;
+
+			return {
+
+				width: w,
+				height: h,
+
+				draw() {
+
+					ctx.fillStyle = colorCSS(color);
+					ctx.fillRect(x, y, w, h);
+
+					if (conf.border) {
+						ctx.lineWidth = lineWidth;
+						ctx.strokeStyle = colorCSS(conf.border);
+						ctx.strokeRect(x, y, w, h);
+					}
+
+					if (conf.click || conf.hover) {
+						const pos = ctx.getTransform().transformPoint();
+						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
+							hovering = true;
+							conf.hover && conf.hover();
+							if (session.mousePressed && !mousePressProcessed) {
+								conf.click && conf.click();
+								mousePressProcessed = true;
+							}
+						}
+
+					}
+
+				},
+
+			};
+
+		}
+
+		function img(src, conf = {}) {
+
+			const padding = conf.padding || 0;
+			const sw = conf.sw || src.width;
+			const sh = conf.sh || src.height;
+			const w = (conf.width || sw) + padding * 2;
+			const h = (conf.height || sh) + padding * 2;
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			const sx = conf.sx || 0;
+			const sy = conf.sy || 0;
+			const lineWidth = conf.lineWidth || 2;
+
+			return {
+
+				width: w,
+				height: h,
+
+				draw() {
+
+					if (conf.bg) {
+						ctx.fillStyle = colorCSS(conf.bg);
+						ctx.fillRect(x, y, w, h);
+					}
+
+					ctx.drawImage(
+						src,
+						sx, sy,
+						sw, sh,
+						x + padding, y + padding,
+						w - padding * 2, h - padding * 2
+					);
+
+					if (conf.border) {
+						ctx.lineWidth = lineWidth;
+						ctx.strokeStyle = colorCSS(conf.border);
+						ctx.strokeRect(x, y, w, h);
+					}
+
+					if (conf.click || conf.hover) {
+						const pos = ctx.getTransform().transformPoint();
+						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
+							hovering = true;
+							conf.hover && conf.hover();
+							if (session.mousePressed && !mousePressProcessed) {
+								conf.click && conf.click();
+								mousePressProcessed = true;
+							}
+						}
+					}
+
+				},
+
+			};
+
+		}
+
+		function text(txt, conf = {}) {
+
+			const size = conf.size || 12;
+			const padding = conf.padding || 0;
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			const w = txt.length * size + padding * 2;
+			const h = size + padding * 2;
+			const color = conf.color || [0, 0, 0, 255];
+			const lineWidth = conf.lineWidth || 2;
+
+			return {
+
+				width: w,
+				height: h,
+
+				draw() {
+
+					if (conf.bg) {
+						ctx.fillStyle = colorCSS(conf.bg);
+						ctx.fillRect(x, y, w, h);
+					}
+
+					ctx.fillStyle = colorCSS(color);
+					drawText(ctx, txt, x + padding, y + padding, size);
+
+					if (conf.border) {
+						ctx.lineWidth = lineWidth;
+						ctx.strokeStyle = colorCSS(conf.border);
+						ctx.strokeRect(x, y, w, h);
+					}
+
+					if (conf.click || conf.hover) {
+						const pos = ctx.getTransform().transformPoint();
+						if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
+							hovering = true;
+							conf.hover && conf.hover();
+							if (session.mousePressed && !mousePressProcessed) {
+								conf.click && conf.click();
+								mousePressProcessed = true;
+							}
+						}
+					}
+
+				},
+
+			};
+
+		}
+
+		function group(list, conf = {}) {
+			const x = conf.x || 0;
+			const y = conf.y || 0;
+			return {
+				width: 0,
+				height: 0,
+				draw() {
+					ctx.save();
+					ctx.translate(x, y);
+					list.forEach((item) => {
+						item.draw();
+					});
+					ctx.restore();
+				},
+			};
+		}
 
 		ctx.lineWidth = 2;
 
@@ -843,6 +1084,12 @@ function pedit(conf) {
 		ctx.fillRect(0, 0, cw, ch);
 		ctx.fillStyle = colorCSS([255, 255, 255, 255]);
 		ctx.fillRect(ox, oy, canvas.img.width * s, canvas.img.height * s);
+
+		const style = {
+			border: [0, 0, 0, 255],
+			bg: [255, 255, 255, 255],
+			padding: 3,
+		};
 
 		// canvas
 		function drawCanvas(ca, dx = 0, dy = 0) {
@@ -903,37 +1150,23 @@ function pedit(conf) {
 		// frame no.
 		{
 
-			let x = 0;
+			const frameNumUI = hstack([
+				...ed.frames.map((_, i) => {
+					const cur = i === ed.curFrame;
+					return text(i + "", {
+						padding: cur ? 6 : 3,
+						bg: cur ? [255, 255, 255, 255] : [230, 230, 230, 255],
+						border: [0, 0, 0, 255],
+						click() {
+							ed.curFrame = i;
+						},
+					});
+				}),
+			], {
+				align: "bottom",
+			});
 
-			for (let i = 0; i < ed.frames.length; i++) {
-
-				const ts = 12;
-				const w = i === ed.curFrame ? 32 : 24;
-				const h = i === ed.curFrame ? 24 : 16;
-				const tx = (w - ts) / 2;
-				const ty = (h - ts) / 2;
-				const c = i === ed.curFrame ? [255, 255, 255, 255] : [230, 230, 230, 255];
-
-				area({
-					x: ox + x,
-					y: oy,
-					w: w,
-					h: -h,
-					draw() {
-						ctx.fillStyle = colorCSS(c);
-						ctx.fillRect(0, 0, w, -h);
-						drawText(ctx, `${i}`, tx, -h + ty, ts);
-						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-						ctx.strokeRect(0, 0, w, -h);
-					},
-					click() {
-						ed.curFrame = i;
-					},
-				});
-
-				x += w;
-
-			}
+			group([frameNumUI], { x: ox, y: oy - frameNumUI.height }).draw();
 
 		}
 
@@ -964,153 +1197,118 @@ function pedit(conf) {
 		}
 
 		// colors
-		ed.palette.forEach((c, i) => {
-			area({
-				x: 0,
-				y: i * 24,
-				w: 24,
-				h: 24,
-				draw() {
-					ctx.fillStyle = colorCSS(c);
-					ctx.fillRect(0, 0, 24, 24);
-					ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-					ctx.strokeRect(0, 0, 24, 24);
-				},
+		vstack([
+			...ed.palette.map((c) => {
+				return rect(24, 24, {
+					color: c,
+					border: [0, 0, 0, 255],
+					lineWidth: colorEq(c, ed.color) ? 4 : 2,
+					click() {
+						ed.color = c;
+					},
+				});
+			}),
+			text("+", {
+				size: 24,
+				bg: [255, 255, 255, 255],
+				border: [0, 0, 0, 255],
 				click() {
-					ed.color = ed.palette[i];
+					// TODO: not working on safari
+					colorSelDom.click();
 				},
-			});
-		});
-
-		// selected color (need to draw on top)
-		const curColorIdx = ed.palette.findIndex(c => colorEq(c, ed.color));
-
-		if (curColorIdx) {
-			ctx.lineWidth = 4;
-			ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-			ctx.strokeRect(0, curColorIdx * 24, 24, 24);
-			ctx.lineWidth = 2;
-		}
-
-		// add color
-		area({
-			x: 0,
-			y: ed.palette.length * 24,
-			w: 24,
-			h: 24,
-			draw() {
-				ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-				ctx.fillRect(0, 0, 24, 24);
-				ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-				ctx.strokeRect(0, 0, 24, 24);
-				drawText(ctx, "+", 0, 0, 24);
-			},
-			click() {
-				colorSelDom.click();
-			},
-		});
+			}),
+		]).draw();
 
 		// tools
 		{
 
-			const w = 32;
-			const h = 32;
-			const x = cw - w;
-			let y = 0;
+			const toolsUI = vstack([
+				...Object.keys(toolData).map((tool) => {
+					const data = toolData[tool];
+					return img(icons, {
+						sx: 16 * data.icon,
+						sw: 16,
+						sh: 16,
+						width: 32,
+						height: 32,
+						bg: [255, 255, 255, 255],
+						border: [0, 0, 0, 255],
+						lineWidth: ed.tool === tool ? 4 : 2,
+						click() {
+							ed.tool = tool;
+						},
+						hover() {
+							tooltip = `${tool} (${data.key})`;
+						},
+					});
+				}),
+			]);
 
-			// draw tool list
-			for (const tool in toolData) {
-
-				const data = toolData[tool];
-
-				area({
-					x: x,
-					y: y,
-					w: w,
-					h: h,
-					draw() {
-						ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-						ctx.fillRect(0, 0, w, h);
-						ctx.drawImage(icons, 16 * data.icon, 0, 16, 16, 0, 0, w, h);
-						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-						ctx.strokeRect(0, 0, w, h);
-					},
-					click() {
-						ed.tool = tool;
-					},
-					hover() {
-						tooltip = `${tool} (${data.key})`;
-					},
-				});
-
-				y += h;
-
-			}
-
-			// TODO: find it
-			// highlight current tool
-			y = 0;
-
-			for (const tool in toolData) {
-
-				if (ed.tool === tool) {
-					const x = cw - w;
-					ctx.lineWidth = 4;
-					ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-					ctx.strokeRect(x, y, w, h);
-					ctx.lineWidth = 2;
-				}
-
-				y += h;
-
-			}
+			group([toolsUI], { x: cw - toolsUI.width }).draw();
 
 		}
 
 		// action
 		{
 
-			const w = 32;
-			const h = 32;
-			let x = cw - w;
-			const y = ch - h;
+			const actionsUI = vstack([
+				...Object.keys(actions).map((name) => {
+					const action = actions[name];
+					return img(icons, {
+						sx: 16 * action.icon,
+						sw: 16,
+						sh: 16,
+						width: 32,
+						height: 32,
+						bg: [255, 255, 255, 255],
+						border: [0, 0, 0, 255],
+						click() {
+							action.action();
+						},
+						hover() {
+							tooltip = `${action}`;
+						},
+					});
+				}),
+			]);
 
-			// draw action list
-			for (const name in actions) {
+			group([
+				actionsUI,
+			], {
+				x: cw - actionsUI.width,
+				y: ch - actionsUI.height,
+			}).draw();
 
-				let curHovering = false;
-				const action = actions[name];
+		}
 
-				area({
-					x: x,
-					y: y,
-					w: w,
-					h: h,
-					draw() {
-						ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-						// TODO: doesn't work
-						if (session.mouseDown && curHovering) {
-							ctx.fillStyle = colorCSS([128, 128, 128, 255]);
-						} else {
-							ctx.fillStyle = colorCSS([255, 255, 255, 255]);
-						}
-						ctx.fillRect(0, 0, w, h);
-						ctx.drawImage(icons, 16 * action.icon, 0, 16, 16, 0, 0, w, h);
-						ctx.strokeStyle = colorCSS([0, 0, 0, 255]);
-						ctx.strokeRect(0, 0, w, h);
-					},
+		// anims
+		{
+
+			const style = {
+				padding: 3,
+				size: 12,
+				bg: [255, 255, 255, 255],
+				border: [0, 0, 0, 255],
+			};
+
+			const anims = vstack([
+				...Object.keys(ed.anims).map((name) => {
+					return text(name, {
+						...style,
+					});
+				}),
+				text("anim +", {
+					...style,
 					click() {
-						action.action();
+						const name = prompt("anim name:");
+						if (name) {
+							ed.anims[name] = [0, 0];
+						}
 					},
-					hover() {
-						curHovering = true;
-						tooltip = `${name}`;
-					},
-				});
+				}),
+			]);
 
-				x -= w;
-
-			}
+			group([anims], { y: ch - anims.height }).draw();
 
 		}
 
@@ -1466,6 +1664,7 @@ function pedit(conf) {
 
 		save() {
 			return {
+				version: VERSION,
 				width: ed.width,
 				height: ed.height,
 				frames: ed.frames.map(f => f.base64()),

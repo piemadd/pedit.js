@@ -16,8 +16,8 @@
 <body>
 
 	<canvas tabindex=0 id="editor" width=480 height=480></canvas>
-	<button id="save">save</button>
-	<button id="load">load</button>
+	<button onclick="save()">save</button>
+	<button onclick="load()">load</button>
 	<pre>
 p: pen
 e: erasor
@@ -55,14 +55,11 @@ m-l: load
 			height: 64,
 		});
 
-		const saveBtn = document.querySelector("#save");
-		const loadBtn = document.querySelector("#load");
-
-		saveBtn.onclick = () => {
+		window.save = () => {
 			localStorage["pedit"] = JSON.stringify(doc.save());
 		};
 
-		loadBtn.onclick = () => {
+		window.load = () => {
 			doc.load(JSON.parse(localStorage["pedit"]));
 		};
 
