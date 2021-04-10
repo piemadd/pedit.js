@@ -485,17 +485,6 @@ function colorCSS(c) {
 	return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})`;
 }
 
-function drawText(ctx, text, x, y, size) {
-	const chars = text.split("");
-	for (const ch of chars) {
-		if (fontMap[ch]) {
-			const [col, row] = fontMap[ch];
-			ctx.drawImage(font, 8 * col, 8 * row, 8, 8, x, y, size, size);
-			x += size;
-		}
-	}
-}
-
 function hex2rgb(hex) {
 	const val = parseInt(hex, 16);
 	const r = (val >> 16) & 255;
@@ -610,7 +599,7 @@ function pedit(conf) {
 		const c = hex2rgb(e.target.value.substring(1))
 		ed.palette.push(c);
 		ed.color = c;
-		trigger("palette", ed.palette);
+		trigger("change", ed.palette);
 	});
 
 	function crop() {
@@ -824,48 +813,98 @@ function pedit(conf) {
 		const ox = ed.view.offset[0];
 		const oy = ed.view.offset[1];
 
-		function handleInput(x, y, w, h, conf) {
-			if (conf.click || conf.hover) {
-				const pos = ctx.getTransform().transformPoint();
-				if (mouseInRect(x + pos.x, y + pos.y, w, h)) {
-					hovering = true;
-					conf.hover && conf.hover();
-					if (session.mousePressed && !mousePressProcessed) {
-						conf.click && conf.click();
-						mousePressProcessed = true;
-					}
-				}
-			}
-		}
+		function rect(w, h, conf = {}) {
 
-		function vstack(list, conf = {}) {
-
-			const align = conf.align || "left";
-			const margin = conf.margin || 0;
-			let w = 0;
-			let h = 0;
-
-			for (const item of list) {
-				w = Math.max(item.width, w);
-				h += item.height + margin;
-			}
+			const lineWidth = conf.lineWidth || 2;
+			let pos;
 
 			return {
 
 				width: w,
 				height: h,
 
+				update() {
+
+					if (!pos) {
+						return;
+					}
+
+					if (conf.click || conf.hover) {
+						if (mouseInRect(pos.x, pos.y, w, h)) {
+							hovering = true;
+							conf.hover && conf.hover();
+							if (session.mousePressed && !mousePressProcessed) {
+								conf.click && conf.click();
+								mousePressProcessed = true;
+							}
+						}
+					}
+
+				},
+
 				draw() {
 
+					pos = ctx.getTransform().transformPoint();
+					this.update();
+
+					if (conf.bg) {
+						ctx.fillStyle = colorCSS(conf.bg);
+						ctx.fillRect(0, 0, w, h);
+					}
+
+					if (conf.border) {
+						ctx.lineWidth = lineWidth;
+						ctx.strokeStyle = colorCSS(conf.border);
+						ctx.strokeRect(0, 0, w, h);
+					}
+
+				},
+
+			};
+
+		}
+
+		function vstack(list, conf = {}) {
+
+			const align = conf.align || "left";
+			const margin = conf.margin || 0;
+			const padding = conf.padding || 0;
+			let cw = 0;
+			let ch = 0;
+
+			for (const item of list) {
+				cw = Math.max(item.width, cw);
+				ch += item.height + margin;
+			}
+
+			const bw = cw + padding * 2;
+			const bh = ch + padding * 2;
+			const area = rect(bw, bh, conf);
+
+			return {
+
+				width: bw,
+				height: bh,
+
+				update() {
+					list.reverse().forEach((item) => {
+						item.update();
+					});
+				},
+
+				draw() {
+
+					area.draw();
 					ctx.save();
+					ctx.translate(padding, padding);
 
 					list.forEach((item) => {
 
 						const offset = (() => {
 							switch (align) {
-								case "left": return 0;
-								case "center": return (w - item.width) / 2;
-								case "left": return (w - item.width);
+								case "left":   return 0;
+								case "center": return (cw - item.width) / 2;
+								case "left":   return (cw - item.width);
 							}
 						})();
 
@@ -887,30 +926,43 @@ function pedit(conf) {
 
 			const align = conf.align || "top";
 			const margin = conf.margin || 0;
-			let w = 0;
-			let h = 0;
+			const padding = conf.padding || 0;
+			let cw = 0;
+			let ch = 0;
 
 			for (const item of list) {
-				w += item.width;
-				h = Math.max(item.height, h);
+				cw += item.width;
+				ch = Math.max(item.height, ch);
 			}
+
+			const bw = cw + padding * 2;
+			const bh = ch + padding * 2;
+			const area = rect(bw, bh, conf);
 
 			return {
 
-				width: w,
-				height: h,
+				width: bw,
+				height: bh,
+
+				update() {
+					list.reverse().forEach((item) => {
+						item.update();
+					});
+				},
 
 				draw() {
 
+					area.draw();
 					ctx.save();
+					ctx.translate(padding, padding);
 
 					list.forEach((item) => {
 
 						const offset = (() => {
 							switch (align) {
-								case "top": return 0;
-								case "center": return (h - item.height) / 2;
-								case "bottom": return (h - item.height);
+								case "top":    return 0;
+								case "center": return (ch - padding * 2 - item.height) / 2;
+								case "bottom": return (ch - padding * 2 - item.height);
 							}
 						})();
 
@@ -928,63 +980,39 @@ function pedit(conf) {
 
 		}
 
-		function rect(w, h, conf = {}) {
-
-			const bg = conf.bg || [0, 0, 0, 255];
-			const lineWidth = conf.lineWidth || 2;
-
-			return {
-
-				width: w,
-				height: h,
-
-				draw() {
-
-					if (conf.bg) {
-						ctx.fillStyle = colorCSS(conf.bg);
-						ctx.fillRect(0, 0, w, h);
-					}
-
-					if (conf.border) {
-						ctx.lineWidth = lineWidth;
-						ctx.strokeStyle = colorCSS(conf.border);
-						ctx.strokeRect(0, 0, w, h);
-					}
-
-					handleInput(0, 0, w, h, conf);
-
-				},
-
-			};
-
-		}
-
 		function img(src, conf = {}) {
 
 			const padding = conf.padding || 0;
 			const sw = conf.sw || src.width;
 			const sh = conf.sh || src.height;
-			const w = (conf.width || sw) + padding * 2;
-			const h = (conf.height || sh) + padding * 2;
+			const cw = (conf.width || sw) + padding * 2;
+			const ch = (conf.height || sh) + padding * 2;
+			const bw = cw + padding * 2;
+			const bh = ch + padding * 2;
 			const sx = conf.sx || 0;
 			const sy = conf.sy || 0;
 			const lineWidth = conf.lineWidth || 2;
+			const area = rect(bw, bh, conf);
 
 			return {
 
-				width: w,
-				height: h,
+				width: bw,
+				height: bh,
+
+				update() {
+					area.update();
+				},
 
 				draw() {
 
-					rect(w, h, conf).draw();
+					area.draw();
 
 					ctx.drawImage(
 						src,
 						sx, sy,
 						sw, sh,
 						padding, padding,
-						w - padding * 2, h - padding * 2
+						cw, ch
 					);
 
 				},
@@ -993,26 +1021,72 @@ function pedit(conf) {
 
 		}
 
-		function text(txt, conf = {}) {
+		function text(content, conf = {}) {
 
+			content += "";
 			const size = conf.size || 12;
 			const padding = conf.padding || 0;
-			const w = txt.length * size + padding * 2;
-			const h = size + padding * 2;
+			const cw = content.length * size;
+			const ch = size;
+			const bw = cw + padding * 2;
+			const bh = ch + padding * 2;
 			const color = conf.color || [0, 0, 0, 255];
 			const lineWidth = conf.lineWidth || 2;
+			const area = rect(bw, bh, conf);
 
 			return {
 
-				width: w,
-				height: h,
+				width: bw,
+				height: bh,
+
+				update() {
+					area.update();
+				},
 
 				draw() {
 
-					rect(w, h, conf).draw();
+					area.draw();
 					ctx.fillStyle = colorCSS(color);
-					drawText(ctx, txt, padding, padding, size);
 
+					const chars = content.split("");
+					let x = 0;
+
+					for (const ch of chars) {
+						if (fontMap[ch]) {
+							const [col, row] = fontMap[ch];
+							ctx.drawImage(
+								font,
+								8 * col, 8 * row,
+								8, 8,
+								padding + x, padding,
+								size, size
+							);
+							x += size;
+						}
+					}
+
+				},
+
+			};
+
+		}
+
+		function move(x, y, item, conf = {}) {
+
+			return {
+
+				width: item.width,
+				height: item.height,
+
+				update() {
+					item.update();
+				},
+
+				draw() {
+					ctx.save();
+					ctx.translate(x, y);
+					item.draw();
+					ctx.restore();
 				},
 
 			};
@@ -1022,14 +1096,22 @@ function pedit(conf) {
 		// absolute frame
 		function aframe(w, h, list, conf = {}) {
 
+			const area = rect(w, h, conf);
+
 			return {
 
 				width: w,
 				height: h,
 
+				update() {
+					list.reverse().forEach(([ item, ]) => {
+						item.update();
+					});
+				},
+
 				draw() {
 
-					rect(w, h, conf).draw();
+					area.draw();
 
 					list.forEach(([ item, [ x, y ] ]) => {
 
@@ -1054,14 +1136,14 @@ function pedit(conf) {
 		}
 
 		// bg
-		rect(cw, ch, {
-			bg: [200, 200, 200, 255],
-		}).draw();
+		const bgUI = rect(cw, ch, {
+			bg: [170, 170, 170, 255],
+		});
 
 		const frameNumUI = hstack([
 			...ed.frames.map((_, i) => {
 				const cur = i === ed.curFrame;
-				return text(i + "", {
+				return text(i, {
 					padding: cur ? 6 : 3,
 					bg: cur ? [255, 255, 255, 255] : [230, 230, 230, 255],
 					border: [0, 0, 0, 255],
@@ -1075,38 +1157,53 @@ function pedit(conf) {
 
 		const canvasBgUI = rect(canvas.img.width * s, canvas.img.height * s, {
 			bg: [255, 255, 255, 255],
+		});
+
+		const canvasBorderUI = rect(canvas.img.width * s, canvas.img.height * s, {
 			border: [0, 0, 0, 255],
 		});
 
-		aframe(cw, ch, [
-			[ canvasBgUI, [ ox, oy ] ],
-			[ frameNumUI, [ ox, oy - frameNumUI.height, frameNumUI, ] ],
-		]).draw();
-
-		// TODO: make this UI primitive
-		// canvas
-		function drawCanvas(ca, dx = 0, dy = 0) {
-			ca.updateEl();
-			ctx.save();
-			ctx.translate(ox, oy);
-			ctx.scale(s, s);
-			ctx.translate(dx, dy);
-			ctx.drawImage(ca.el, 0, 0);
-			ctx.restore();
+		function ucanvas(ca, conf = {}) {
+			const dx = conf.dx || 0;
+			const dy = conf.dy || 0;
+			return {
+				width: ca.img.width * s,
+				height: ca.img.height * s,
+				draw() {
+					ca.updateEl();
+					ctx.save();
+					ctx.scale(s, s);
+					ctx.translate(dx, dy);
+					ctx.drawImage(ca.el, 0, 0);
+					ctx.restore();
+				},
+			};
 		}
 
-		drawCanvas(canvas);
+		const canvasUI = ucanvas(canvas);
 
-		if (ed.tool === "move") {
-			if (session.mouseStartPos) {
+		const fCanvasUI = (() => {
+			if (ed.tool === "move" && session.mouseStartPos) {
 				const [cx, cy] = toCanvasPos(session.mousePos);
 				const [scx, scy] = toCanvasPos(session.mouseStartPos);
 				const [dcx, dcy] = [ cx - scx, cy - scy ];
-				drawCanvas(ed.fCanvas, dcx, dcy);
+				return ucanvas(ed.fCanvas, {
+					dx: dcx,
+					dy: dcy,
+				});
+			} else {
+				return ucanvas(ed.fCanvas);
 			}
-		} else {
-			drawCanvas(ed.fCanvas);
-		}
+		})();
+
+		aframe(cw, ch, [
+			[ bgUI,           [ 0,  0 ] ],
+			[ canvasBgUI,     [ ox, oy ] ],
+			[ canvasUI,       [ ox, oy ] ],
+			[ fCanvasUI,      [ ox, oy ] ],
+			[ frameNumUI,     [ ox, oy - frameNumUI.height ] ],
+			[ canvasBorderUI, [ ox, oy ] ],
+		]).draw();
 
 		// draw selection
 		if (canvas.scissorRect) {
@@ -1247,6 +1344,7 @@ function pedit(conf) {
 					const name = prompt("anim name:");
 					if (name) {
 						ed.anims[name] = [0, 0];
+						trigger("change");
 					}
 				},
 			}),
@@ -1256,16 +1354,16 @@ function pedit(conf) {
 					text(name, {
 						...style,
 						click() {
-// 								playAnim(name),
+// 							playAnim(name),
 						},
 					}),
-					text(bound[0] + "", {
+					text(bound[0], {
 						...style,
 						click() {
 							bound[0] = (bound[0] + 1) % ed.frames.length;
 						},
 					}),
-					text(bound[1] + "", {
+					text(bound[1], {
 						...style,
 						click() {
 							bound[1] = (bound[1] + 1) % ed.frames.length;
@@ -1294,9 +1392,7 @@ function pedit(conf) {
 				border: [0, 0, 0, 255],
 			});
 
-			aframe(cw, ch, [
-				[ tooltipUI, [ mx - tooltipUI.width - margin, my + margin, ] ]
-			]).draw();
+			move(mx - tooltipUI.width - margin, my + margin, tooltipUI).draw();
 
 		}
 
@@ -1565,7 +1661,7 @@ function pedit(conf) {
 					} else {
 						if (confirm("remove selected color?")) {
 							ed.palette = ed.palette.filter(c => !colorEq(c, ed.color));
-							trigger("palette", ed.palette);
+							trigger("change", ed.palette);
 						}
 					}
 					break;
@@ -1624,30 +1720,34 @@ function pedit(conf) {
 			ed.palette = palette;
 		},
 
-		cleanUp() {
-			for (const e in events) {
-				canvasEl.removeEventListener(e, events[e]);
-			}
-		},
-
 		save() {
 			return {
 				version: VERSION,
 				width: ed.width,
 				height: ed.height,
-				frames: ed.frames.map(f => f.base64()),
+				palette: ed.palette,
 				anims: ed.anims,
+				frames: ed.frames.map(f => f.base64()),
 			};
 		},
 
 		load(data) {
 			ed.width = data.width;
 			ed.height = data.height;
+			ed.palette = data.palette;
+			ed.anims = data.anims;
+			ed.frames.length = data.frames.length;
+			ed.curFrame = 0;
 			data.frames.forEach((f, i) => {
 				ed.frames[i] = makeCanvas(data.width, data.height);
 				ed.frames[i].loadBase64(f);
 			});
-			ed.anims = data.anims;
+		},
+
+		cleanUp() {
+			for (const e in events) {
+				canvasEl.removeEventListener(e, events[e]);
+			}
 		},
 
 	};
