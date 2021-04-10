@@ -1361,12 +1361,14 @@ function pedit(conf) {
 						...style,
 						click() {
 							bound[0] = (bound[0] + 1) % ed.frames.length;
+							trigger("change");
 						},
 					}),
 					text(bound[1], {
 						...style,
 						click() {
 							bound[1] = (bound[1] + 1) % ed.frames.length;
+							trigger("change");
 						},
 					}),
 				]);
