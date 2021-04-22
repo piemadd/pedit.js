@@ -41,9 +41,8 @@ m-s: save
 m-l: load
 	</pre>
 
-	<script type="module">
-
-		import pedit from "/pedit.js";
+	<script src="pedit.js"></script>
+	<script>
 
 		const canvas = document.querySelector("#editor");
 
@@ -55,13 +54,17 @@ m-l: load
 			height: 32,
 		});
 
-		window.save = () => {
+		function save() {
 			localStorage["pedit"] = JSON.stringify(doc.save());
 		};
 
-		window.load = () => {
+		function load() {
 			doc.load(JSON.parse(localStorage["pedit"]));
 		};
+
+		doc.on("change", () => {
+			save();
+		});
 
 	</script>
 

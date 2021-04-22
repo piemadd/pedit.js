@@ -1,15 +1,13 @@
-// TODO: make work without any browser stuff
-// TODO: separate init code and functions
 // TODO: brush size
-// TODO: custom color
 // TODO: improve move selection
 // TODO: rotate selection
 // TODO: scale selection
 // TODO: stroke rect
 // TODO: stroke circle
 // TODO: bucket selection
-// TODO: cleaner action management
 // TODO: viewport scale for bigger sprites
+
+(() => {
 
 const MIN_SCALE = 2;
 const MAX_SCALE = 64;
@@ -448,6 +446,15 @@ function makeCanvas(width, height, pixels) {
 			return this.el.toDataURL("image/png");
 		},
 
+		png() {
+			const binString = window.atob(this.base64());
+			const bytes = new Uint8Array(binString);
+			for (let i = 0; i < bytes.length; i++) {
+				bytes[i] = binString.charCodeAt(i);
+			}
+			return bytes.buffer;
+		},
+
 		loadImg(img) {
 
 			this.el.width = img.width;
@@ -476,9 +483,7 @@ function makeCanvas(width, height, pixels) {
 }
 
 function colorEq(c1, c2) {
-	return (
-		c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2] && c1[3] === c2[3]
-	);
+	return c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2] && c1[3] === c2[3];
 }
 
 function colorCSS(c) {
@@ -555,8 +560,11 @@ function pedit(conf) {
 		},
 
 		modified: false,
+		readOnly: false,
 
 		events: {},
+
+		animPlaying: null,
 
 	};
 
@@ -799,6 +807,16 @@ function pedit(conf) {
 	// get all frames pure data
 	function frameData() {
 		return ed.frames.map(f => f.data());
+	}
+
+	function playAnim(name) {
+		ed.animPlaying = name;
+		ed.readOnly = true;
+	}
+
+	function stopAnim(name) {
+		ed.animPlaying = null;
+		ed.readOnly = false;
 	}
 
 	function update(time) {
@@ -1354,7 +1372,7 @@ function pedit(conf) {
 					text(name, {
 						...style,
 						click() {
-// 							playAnim(name),
+							playAnim(name);
 						},
 					}),
 					text(bound[0], {
@@ -1460,7 +1478,7 @@ function pedit(conf) {
 
 	const events = {
 
-		wheel: (e) => {
+		wheel(e) {
 			e.preventDefault();
 			if (e.altKey) {
 				if (e.deltaY < 0) {
@@ -1474,7 +1492,7 @@ function pedit(conf) {
 			}
 		},
 
-		mousedown: (e) => {
+		mousedown(e) {
 			session.mousePressed = true;
 			session.mouseDown = true;
 			session.mousePosPrev = [...session.mousePos];
@@ -1482,7 +1500,7 @@ function pedit(conf) {
 			session.mouseStartPos = [...session.mousePos];
 		},
 
-		mousemove: (e) => {
+		mousemove(e) {
 
 			session.mousePosPrev = [...session.mousePos];
 			session.mousePos = [e.offsetX, e.offsetY];
@@ -1544,7 +1562,7 @@ function pedit(conf) {
 
 		},
 
-		mouseup: (e) => {
+		mouseup(e) {
 
 			session.mouseDown = false;
 			session.mousePosPrev = [session.mousePos, session.mousePos];
@@ -1583,9 +1601,7 @@ function pedit(conf) {
 
 		},
 
-		keydown: (e) => {
-
-			trigger("key", e);
+		keydown(e) {
 
 			if (!e.metaKey) {
 				for (const tool in toolData) {
@@ -1676,7 +1692,7 @@ function pedit(conf) {
 
 		},
 
-		keyup: (e) => {
+		keyup(e) {
 			switch (e.key) {
 				case " ":
 					session.grabbin = false;
@@ -1685,6 +1701,8 @@ function pedit(conf) {
 		},
 
 	};
+
+	canvasEl.onselectstart = () => { return false; };
 
 	for (const e in events) {
 		canvasEl.addEventListener(e, events[e]);
@@ -1733,6 +1751,10 @@ function pedit(conf) {
 			};
 		},
 
+		curFrame() {
+			return ed.frames[ed.curFrame];
+		},
+
 		load(data) {
 			ed.width = data.width;
 			ed.height = data.height;
@@ -1770,4 +1792,6 @@ function pedit(conf) {
 
 }
 
-export default pedit;
+window.pedit = pedit;
+
+})();
