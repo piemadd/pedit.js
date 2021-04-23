@@ -6,6 +6,7 @@
 // TODO: stroke circle
 // TODO: bucket selection
 // TODO: viewport scale for bigger sprites
+// TODO: fix undo after load
 
 (() => {
 
@@ -15,7 +16,7 @@ const PADDING = 120;
 const MAX_STATES = 64;
 const VERSION = "0.1.0";
 
-const icons = loadImg("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAQCAYAAABA4nAoAAAAAXNSR0IArs4c6QAAAXpJREFUaIHtmlEOwyAIQO2y+1/ZfTVzVBAQKXa8ZEm1KhRBsWspSZIkyX9y3K1AYCoo72qrWvbVPSlXR/SQ15OJ1cM2FrIp+RIZmj4WeMtTE31laA050lVq9N54nNVy1GZmxbWQ37aDRJ9vd95IPeZMXAPO9tcyq5+VDhHSjlO+py4cu0rmyEpvdCwsACyAAqVOB9uvnkju+BwH1wYBVz6FxQ6lXcCsdukVC1T3uVcGwL9zx04gcTAsBSzlq3vLAe5rxufq1rvmyMX6tfU/Y0QNAPYDBMczCCjHwQ7VB1Hu4ZFWUYGmPSOhgfuSapeI6a2mq+S010dTB8uw/VkevTE670c5y02PuTIAKvhJwAyw0vBcR9Xm9tyxZ9pw9aLsi+layzWIpEj6Ws41OhaWAs0Kt1AeTsROqU8Pr3Ro9qDKbTNiFMyafF7ykoLVZ3enarHaZaj8k+rHhQoCauKkjpD/AzBIg+A84VOIaDvobi8xkgewzWcJSZI48wEj/mYgkYxC6QAAAABJRU5ErkJggg==");
+const icons = loadImg("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOAAAAAQCAYAAAAPv3P4AAAAAXNSR0IArs4c6QAAAZ1JREFUaIHtmtuuAyEIRe1J//+X5zxNYijo5iKjLStp0jiKlIvo2NaKoiiKoih6LvI5lZN1P52p7V8ZWji5Wq6et9HonFI77ePRtXeYNP9MB++YCLJ9FgmXNJbfAtl+dyNpAki70nPykMCZ9fEEX8T8fT/K7v5+mtu2NO60PoVt/1YIEIUsGG/Fq1+UDjtUgHv+TF0Qu2p8FKW3V5bWp7DtpQSMYLSFQqD9VwcSKh9xhjUJ0flHRFRo6wIatUtZsUBaEoi2hcfgygT8dZ6ohJoAl7bgrX1uw2hb1DZZGst9R+aVxvXtq/3B2Ug8Su2agE8aMJLMJBwFLmdPqheiZ8a2dpTo1jMyunB4kfQT7bxrAn4TWUkoBS6XaLTPaHxPViBzFThCJkrUC6zpmD+DUBTPPZqk+ErHo063nu1Q2Z4+njPO3S7penXPrWjGRvp6212TVAG9Ckf8YO518MlkVkLPc7TPjNlisuou86i42Vo5JVFV1nMRjzBKwsiL+LoHtOHdYagWnnKIjPUN3E7sVglOe4lWFG7qv6BFURQc/9PedC4cH6XoAAAAAElFTkSuQmCC");
 const font = loadImg("data:image/png;base64,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");
 const fontMap = {};
 
@@ -579,26 +580,40 @@ function pedit(conf) {
 		mouseStartPos: null,
 		grabbin: false,
 		delCb: () => {},
+		hideUI: false,
+		loopID: null,
 	};
 
 	scaleFit();
 	ctx.imageSmoothingEnabled = false;
 
 	const actions = {
+		export: {
+			icon: 13,
+			action: () => {
+				trigger("export");
+			},
+		},
+		save: {
+			icon: 12,
+			action: () => {
+				trigger("save");
+			},
+		},
 		crop: {
 			icon: 9,
 			action: crop,
 		},
-// 		redo: {
-// 			icon: 11,
-// 			key: "meta+shift+z",
-// 			action: redo,
-// 		},
-// 		undo: {
-// 			icon: 10,
-// 			key: "shift+z",
-// 			action: undo,
-// 		},
+		undo: {
+			icon: 10,
+			key: "shift+z",
+			action: undo,
+		},
+		redo: {
+			icon: 11,
+			key: "meta+shift+z",
+			action: redo,
+		},
 	};
 
 	const colorSelDom = document.createElement("input");
@@ -632,8 +647,8 @@ function pedit(conf) {
 		});
 
 		ed.frames.forEach(c => c.crop(p1, p2));
-		ed.width = ed.frames[ed.curFrame].width;
-		ed.height = ed.frames[ed.curFrame].height;
+		ed.width = ed.frames[ed.curFrame].img.width;
+		ed.height = ed.frames[ed.curFrame].img.height;
 		pushState();
 
 	}
@@ -1288,6 +1303,8 @@ function pedit(conf) {
 		{
 
 			const [mx, my] = toCanvasPos(session.mousePos);
+			const px = mx * s + ox;
+			const py = my * s + oy;
 
 			if (canvas.checkPt(mx, my)) {
 				switch (ed.tool) {
@@ -1296,19 +1313,15 @@ function pedit(conf) {
 					case "line":
 					case "circle":
 					case "bucket":
-						rect(s, s, {
-							x: mx * s + ox,
-							y: my * s + oy,
+						move(px, py, rect(s, s, {
 							bg: ed.color,
-						}).draw();
+						})).draw();
 						break;
 					case "erasor":
-						rect(s, s, {
-							x: mx * s + ox,
-							y: my * s + oy,
+						move(px, py, rect(s, s, {
 							bg: [255, 255, 255, 255],
 							border: [0, 0, 0, 255],
-						}).draw();
+						})).draw();
 						break;
 				}
 			}
@@ -1425,12 +1438,14 @@ function pedit(conf) {
 			}),
 		]);
 
-		pframe(cw, ch, [
-			[ paletteUI, [ 0, 0 ], ],
-			[ toolsUI,   [ 1, 0 ], ],
-			[ actionsUI, [ 1, 1 ], ],
-			[ animsUI,   [ 0, 1 ], ],
-		]).draw();
+		if (!session.hideUI) {
+			pframe(cw, ch, [
+				[ paletteUI, [ 0, 0 ], ],
+				[ toolsUI,   [ 1, 0 ], ],
+				[ actionsUI, [ 1, 1 ], ],
+				[ animsUI,   [ 0, 1 ], ],
+			]).draw();
+		}
 
 		// tooltip
 		if (tooltip) {
@@ -1459,6 +1474,8 @@ function pedit(conf) {
 		if (session.mousePressed && !mousePressProcessed) {
 
 			const [cx, cy] = toCanvasPos(session.mousePos);
+
+			session.mouseDown = true;
 
 			switch (ed.tool) {
 
@@ -1501,12 +1518,11 @@ function pedit(conf) {
 		}
 
 		session.mousePressed = false;
-
-		window.requestAnimationFrame(update);
+		session.loopID = window.requestAnimationFrame(update);
 
 	}
 
-	window.requestAnimationFrame(update);
+	session.loopID = window.requestAnimationFrame(update);
 
 	const events = {
 
@@ -1526,7 +1542,6 @@ function pedit(conf) {
 
 		mousedown(e) {
 			session.mousePressed = true;
-			session.mouseDown = true;
 			session.mousePosPrev = [...session.mousePos];
 			session.mousePos = [e.offsetX, e.offsetY];
 			session.mouseStartPos = [...session.mousePos];
@@ -1715,7 +1730,9 @@ function pedit(conf) {
 				case "Escape":
 					canvas.scissorRect = null;
 					break;
-				case "j":
+				case "Tab":
+					e.preventDefault();
+					session.hideUI = !session.hideUI;
 					break;
 			}
 
@@ -1816,6 +1833,7 @@ function pedit(conf) {
 			for (const e in events) {
 				canvasEl.removeEventListener(e, events[e]);
 			}
+			window.cancelAnimationFrame(session.loopID);
 		},
 
 	};
