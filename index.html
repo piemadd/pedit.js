@@ -16,17 +16,16 @@
 <body>
 
 	<canvas tabindex=0 id="editor" width=480 height=480></canvas>
-	<button onclick="save()">save</button>
-	<button onclick="load()">load</button>
 	<pre>
 p: pen
-e: erasor
-b: bucket
-r: rect
-c: circle
-l: line
-s: select
-m: move
+w: erasor
+e: bucket
+a: rect
+s: circle
+d: line
+z: select
+x: move
+c: eyedropper
 1-9: color
 -: scale down
 =: scale up
@@ -62,8 +61,11 @@ m-l: load
 			doc.load(JSON.parse(localStorage["pedit"]));
 		};
 
+		doc.on("save", save);
+		doc.on("load", load);
+
 		doc.on("change", () => {
-			save();
+			console.log("changed");
 		});
 
 	</script>
