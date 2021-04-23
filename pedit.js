@@ -441,14 +441,15 @@ function makeCanvas(width, height, pixels) {
 
 		},
 
-		base64() {
+		dataURL() {
 			this.updateEl();
 			return this.el.toDataURL("image/png");
 		},
 
 		png() {
-			const binStr = window.atob(this.base64());
-			const bytes = new Uint8Array(binStr);
+			const base64Str = this.dataURL().replace(/^data:image\/png;base64,/, '');
+			const binStr = window.atob(base64Str);
+			const bytes = new Uint8Array(binStr.length);
 			for (let i = 0; i < bytes.length; i++) {
 				bytes[i] = binStr.charCodeAt(i);
 			}
@@ -466,8 +467,8 @@ function makeCanvas(width, height, pixels) {
 
 		},
 
-		loadBase64(base64) {
-			loadImg(base64, (img) => {
+		loadDataURL(url) {
+			loadImg(url, (img) => {
 				this.loadImg(img);
 			});
 		},
@@ -1742,6 +1743,10 @@ function pedit(conf) {
 			return ed.frames;
 		},
 
+		curFrame() {
+			return ed.frames[ed.curFrame];
+		},
+
 		data() {
 			return frameData();
 		},
@@ -1775,7 +1780,7 @@ function pedit(conf) {
 				height: ed.height,
 				palette: ed.palette,
 				anims: ed.anims,
-				frames: ed.frames.map(f => f.base64()),
+				frames: ed.frames.map(f => f.dataURL()),
 			};
 		},
 
@@ -1801,7 +1806,7 @@ function pedit(conf) {
 				ed.frames.length = data.frames.length;
 				data.frames.forEach((f, i) => {
 					ed.frames[i] = makeCanvas(data.width, data.height);
-					ed.frames[i].loadBase64(f);
+					ed.frames[i].loadDataURL(f);
 				});
 			}
 
