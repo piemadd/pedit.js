@@ -447,10 +447,10 @@ function makeCanvas(width, height, pixels) {
 		},
 
 		png() {
-			const binString = window.atob(this.base64());
-			const bytes = new Uint8Array(binString);
+			const binStr = window.atob(this.base64());
+			const bytes = new Uint8Array(binStr);
 			for (let i = 0; i < bytes.length; i++) {
-				bytes[i] = binString.charCodeAt(i);
+				bytes[i] = binStr.charCodeAt(i);
 			}
 			return bytes.buffer;
 		},
@@ -577,6 +577,7 @@ function pedit(conf) {
 		mousePosPrev: [0, 0],
 		mouseStartPos: null,
 		grabbin: false,
+		delCb: () => {},
 	};
 
 	scaleFit();
@@ -606,7 +607,7 @@ function pedit(conf) {
 	colorSelDom.addEventListener("change", (e) => {
 		const c = hex2rgb(e.target.value.substring(1))
 		ed.palette.push(c);
-		ed.color = c;
+		setColor(c);
 		trigger("change", ed.palette);
 	});
 
@@ -684,18 +685,20 @@ function pedit(conf) {
 
 	}
 
-	function newFrame() {
+	function newFrame(n = ed.curFrame) {
 		ed.frames.splice(ed.curFrame, 0, ed.frames[ed.curFrame].clone());
-		ed.curFrame++;
+		if (n === ed.curFrame) {
+			ed.curFrame++;
+		}
 		pushState();
 	}
 
-	function delFrame() {
+	function delFrame(n = ed.curFrame) {
 
 		if (ed.frames.length > 1) {
-			ed.frames.splice(ed.curFrame, 1);
+			ed.frames.splice(n, 1);
 			if (ed.curFrame === ed.frames.length) {
-				ed.curFrame = ed.frames.length - 1;
+				setFrame(ed.frames.length - 1);
 			}
 		}
 
@@ -703,12 +706,31 @@ function pedit(conf) {
 
 	}
 
+	function setFrame(n) {
+		ed.curFrame = n;
+		session.delCb = () => {
+			if (confirm(`removed frame ${n}?`)) {
+				delFrame(n);
+			}
+		};
+	}
+
+	function setColor(c) {
+		ed.color = c;
+		session.delCb = () => {
+			if (confirm("remove selected color?")) {
+				ed.palette = ed.palette.filter(c => !colorEq(c, ed.color));
+				trigger("change", ed.palette);
+			}
+		}
+	}
+
 	function prevFrame() {
-		ed.curFrame = ed.curFrame === 0 ? ed.frames.length - 1 : ed.curFrame - 1;
+		setFrame(ed.curFrame === 0 ? ed.frames.length - 1 : ed.curFrame - 1);
 	}
 
 	function nextFrame() {
-		ed.curFrame = (ed.curFrame + 1) % ed.frames.length;
+		setFrame((ed.curFrame + 1) % ed.frames.length);
 	}
 
 	function mouseInRect(x, y, w, h) {
@@ -1167,9 +1189,18 @@ function pedit(conf) {
 					border: [0, 0, 0, 255],
 					size: 16,
 					click() {
-						ed.curFrame = i;
+						setFrame(i);
 					},
 				});
+			}),
+			text("+", {
+				padding: 3,
+				bg: [230, 230, 230, 255],
+				border: [0, 0, 0, 255],
+				size: 16,
+				click() {
+					newFrame();
+				},
 			}),
 		], { align: "bottom", });
 
@@ -1297,7 +1328,7 @@ function pedit(conf) {
 					border: [0, 0, 0, 255],
 					lineWidth: colorEq(c, ed.color) ? 4 : 2,
 					click() {
-						ed.color = c;
+						setColor(c);
 					},
 				});
 			}),
@@ -1631,7 +1662,7 @@ function pedit(conf) {
 				case "7":
 				case "8":
 				case "9":
-					ed.color = ed.palette[parseInt(e.key, 10) - 1] || ed.color;
+					setColor(ed.palette[parseInt(e.key, 10) - 1] || ed.color);
 					break;
 				case "0":
 					scaleFit();
@@ -1677,10 +1708,7 @@ function pedit(conf) {
 						deleteSelection();
 						canvas.scissorRect = null;
 					} else {
-						if (confirm("remove selected color?")) {
-							ed.palette = ed.palette.filter(c => !colorEq(c, ed.color));
-							trigger("change", ed.palette);
-						}
+						session.delCb();
 					}
 					break;
 				case "Escape":
@@ -1756,16 +1784,27 @@ function pedit(conf) {
 		},
 
 		load(data) {
+
 			ed.width = data.width;
 			ed.height = data.height;
-			ed.palette = data.palette;
-			ed.anims = data.anims;
-			ed.frames.length = data.frames.length;
-			ed.curFrame = 0;
-			data.frames.forEach((f, i) => {
-				ed.frames[i] = makeCanvas(data.width, data.height);
-				ed.frames[i].loadBase64(f);
-			});
+
+			if (data.palette) {
+				ed.palette = data.palette;
+			}
+
+			if (data.anims) {
+				ed.anims = data.anims;
+			}
+
+			if (data.frames) {
+				ed.curFrame = 0;
+				ed.frames.length = data.frames.length;
+				data.frames.forEach((f, i) => {
+					ed.frames[i] = makeCanvas(data.width, data.height);
+					ed.frames[i].loadBase64(f);
+				});
+			}
+
 		},
 
 		cleanUp() {
