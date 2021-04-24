@@ -1839,6 +1839,7 @@ function load(data) {
 		});
 	})).then(() => {
 		initStack();
+		scaleFit();
 	});
 
 
