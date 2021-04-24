@@ -168,7 +168,7 @@ function makeCanvas(width, height) {
 		},
 
 		height() {
-			return img.width;
+			return img.height;
 		},
 
 		toImageData() {
@@ -180,7 +180,7 @@ function makeCanvas(width, height) {
 		},
 
 		clone() {
-			return makeCanvas(img.width, img.height, img.data.slice(0));
+			return makeCanvas(this.toImageData());
 		},
 
 		clear() {
@@ -189,13 +189,6 @@ function makeCanvas(width, height) {
 				img.width,
 				img.height,
 			);
-		},
-
-		setPixels(pixels) {
-			if (pixels.length !== img.width * img.height * 4) {
-				throw new Error("bad canvas bro");
-			}
-			img.data.set(pixels);
 		},
 
 		set(x, y, c) {
@@ -486,7 +479,7 @@ function makeCanvas(width, height) {
 				}
 			}
 
-			img = newCanvas.img;
+			img = newCanvas.toImageData();
 
 		},
 
@@ -665,8 +658,8 @@ function crop() {
 	});
 
 	ed.frames.forEach(c => c.crop(p1, p2));
-	ed.width = ed.frames[ed.curFrame].img.width;
-	ed.height = ed.frames[ed.curFrame].img.height;
+	ed.width = curFrame().width();
+	ed.height = curFrame().height();
 	pushState();
 
 }
@@ -720,7 +713,7 @@ function scaleFit() {
 }
 
 function newFrame(n = ed.curFrame) {
-	ed.frames.splice(ed.curFrame, 0, ed.frames[ed.curFrame].clone());
+	ed.frames.splice(ed.curFrame, 0, curFrame().clone());
 	if (n === ed.curFrame) {
 		ed.curFrame++;
 	}
@@ -787,7 +780,7 @@ function mouseInRect(x, y, w, h) {
 
 function deleteSelection() {
 
-	const canvas = ed.frames[ed.curFrame];
+	const canvas = curFrame();
 	const [p1, p2] = canvas.scissorRect;
 
 	canvas.blend = "replace";
@@ -880,7 +873,7 @@ function update(time) {
 	let hovering = false;
 	let mousePressProcessed = false;
 	let tooltip = null;
-	const canvas = ed.frames[ed.curFrame];
+	const canvas = curFrame();
 	const cw = canvasEl.width;
 	const ch = canvasEl.height;
 	const s = ed.view.scale;
@@ -1597,7 +1590,7 @@ const events = {
 			return;
 		}
 
-		const canvas = ed.frames[ed.curFrame];
+		const canvas = curFrame();
 		const [cx, cy] = toCanvasPos(session.mousePos);
 		const [pcx, pcy] = toCanvasPos(session.mousePosPrev);
 		const [scx, scy] = toCanvasPos(session.mouseStartPos);
@@ -1650,7 +1643,7 @@ const events = {
 		session.mousePosPrev = [session.mousePos, session.mousePos];
 		session.mousePos = [e.offsetX, e.offsetY];
 
-		const canvas = ed.frames[ed.curFrame];
+		const canvas = curFrame();
 		const [cx, cy] = toCanvasPos(session.mousePos);
 		// TODO: sometimes mouseStartPos is null (mouseup fired without any mousedown before)
 		const [scx, scy] = toCanvasPos(session.mouseStartPos);
@@ -1695,7 +1688,7 @@ const events = {
 			}
 		}
 
-		const canvas = ed.frames[ed.curFrame];
+		const canvas = curFrame();
 
 		switch (e.key) {
 			case "-":
