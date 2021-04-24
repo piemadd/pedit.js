@@ -1854,7 +1854,7 @@ function downloadBlob(name, ...args) {
 }
 
 function download(name) {
-	downloadBlob(name, [JSON.stringify(this.save())]);
+	downloadBlob(name, [JSON.stringify(save())]);
 }
 
 function downloadPNG(name) {
