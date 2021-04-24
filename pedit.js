@@ -496,7 +496,7 @@ function makeCanvas(width, height) {
 		},
 
 		toPNG() {
-			const base64Str = this.dataURL().replace(/^data:image\/png;base64,/, '');
+			const base64Str = this.toDataURL().replace(/^data:image\/png;base64,/, '');
 			const binStr = window.atob(base64Str);
 			const bytes = new Uint8Array(binStr.length);
 			for (let i = 0; i < bytes.length; i++) {
