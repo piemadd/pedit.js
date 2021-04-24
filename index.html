@@ -34,6 +34,7 @@ c: eyedropper
 ->: next frame
 +: new frame
 _: del frame
+bksp: del color / frame / area
 m-z: undo
 ms-z: redo
 m-s: save
@@ -47,25 +48,35 @@ m-l: load
 
 		canvas.focus();
 
-		const doc = pedit({
+		const p = pedit({
 			canvas: canvas,
 			width: 32,
 			height: 32,
 		});
 
 		function save() {
-			localStorage["pedit"] = JSON.stringify(doc.save());
+			localStorage["pedit"] = JSON.stringify(p.save());
 		};
 
 		function load() {
-			doc.load(JSON.parse(localStorage["pedit"]));
+			p.load(JSON.parse(localStorage["pedit"]));
 		};
 
-		doc.on("save", save);
-		doc.on("load", load);
+		function download() {
+			const name = prompt("name");
+			if (name) {
+				p.downloadPNG(`${name}.pedit`);
+			}
+		};
 
-		doc.on("change", () => {
-			console.log("changed");
+		p.on("save", save);
+		p.on("load", load);
+
+		p.on("export", () => {
+			const name = prompt("name");
+			if (name) {
+				p.downloadPNG(`${name}.png`);
+			}
 		});
 
 	</script>

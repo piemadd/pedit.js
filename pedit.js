@@ -1845,6 +1845,22 @@ function load(data) {
 
 }
 
+function downloadBlob(name, ...args) {
+	const url = URL.createObjectURL(new Blob(...args));
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = name;
+	link.click();
+}
+
+function download(name) {
+	downloadBlob(name, [JSON.stringify(this.save())]);
+}
+
+function downloadPNG(name) {
+	downloadBlob(name, [curFrame().toPNG()]);
+}
+
 function cleanUp() {
 	for (const e in events) {
 		canvasEl.removeEventListener(e, events[e]);
@@ -1886,6 +1902,8 @@ return {
 	delFrame,
 	prevFrame,
 	nextFrame,
+	download,
+	downloadPNG,
 	cleanUp,
 };
 
